@@ -12,37 +12,41 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh; /* Usa min-height para acomodar múltiplos itens */
+            min-height: 100vh;
             margin: 0;
             background-color: transparent;
             color: #37352f;
-            padding: 20px;
+            padding: 10px;
             box-sizing: border-box;
         }
 
         #trips-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
         }
 
         .trip-card {
-            margin-bottom: 30px;
             padding: 15px;
             border-radius: 8px;
-            background-color: #ffffff; /* Fundo do card no Light Mode */
+            background-color: #ffffff;
             box-shadow: 0 1px 3px rgba(15, 15, 15, 0.1);
+            text-align: center;
         }
 
         h2 {
-            font-size: 1.2em;
+            font-size: 1em;
             margin-top: 0;
             margin-bottom: 5px;
             font-weight: 600;
+            min-height: 30px;
         }
 
         .date-info {
-            font-size: 0.9em;
-            margin-bottom: 15px;
+            font-size: 0.8em;
+            margin-bottom: 10px;
             color: #6a6a6a;
         }
 
@@ -52,26 +56,28 @@
             border-radius: 10px;
             overflow: hidden;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-            height: 25px;
+            height: 20px;
             margin-bottom: 10px;
         }
 
         .progress-bar {
             height: 100%;
-            background-color: #2ecc71;
             width: 0;
             transition: width 0.5s ease-in-out;
             display: flex;
             align-items: center;
-            justify-content: center;
+            /* CORREÇÃO: Alinhamento do texto para o centro */
+            justify-content: center; 
             color: white;
             font-weight: bold;
-            font-size: 0.8em;
+            font-size: 0.7em;
             text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            /* CORREÇÃO: Garante que o texto da porcentagem seja visível mesmo com barra pequena */
+            min-width: 20px; 
         }
 
         .days-left {
-            font-size: 1em;
+            font-size: 0.9em;
             font-weight: 500;
             color: #37352f;
         }
@@ -83,7 +89,7 @@
             }
 
             .trip-card {
-                background-color: #2f3437; /* Fundo do card no Dark Mode */
+                background-color: #2f3437;
                 box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1);
             }
 
@@ -115,7 +121,7 @@
             {
                 title: "✈️ Guarulhos para Lisboa",
                 destinationDate: "2025-12-19",
-                creationDate: "2025-11-22" // Data de hoje (quando o widget foi criado)
+                creationDate: "2025-11-22"
             },
             {
                 title: "✈️ Lisboa para Madri",
@@ -164,16 +170,16 @@
 
         function calculateProgress(trip) {
             const DESTINATION_DATE = new Date(trip.destinationDate + "T00:00:00");
-            const CREATION_DATE = new Date(trip.creationDate + "T00:00:00");
+            const CREATION_DATE = now;;
             const now = new Date();
             
-            // Duração total do período de espera (desde a criação até a viagem)
+            // CORREÇÃO: A data de criação deve ser a data atual para que o progresso comece a partir de hoje.
+            // Se a data de criação for fixada em 2025-11-22, o cálculo está correto, mas o tempo decorrido é pequeno.
+            // Vamos manter a lógica de tempo decorrido / tempo total, mas garantir que o tempo total seja o tempo
+            // entre a data de criação e a data de destino.
+            
             const TOTAL_DURATION_MS = DESTINATION_DATE.getTime() - CREATION_DATE.getTime();
-            
-            // Tempo que já passou desde a criação
             const ELAPSED_TIME_MS = now.getTime() - CREATION_DATE.getTime();
-            
-            // Tempo restante até a viagem
             const TIME_LEFT_MS = DESTINATION_DATE.getTime() - now.getTime();
             
             const DAYS_LEFT = Math.ceil(TIME_LEFT_MS / (1000 * 60 * 60 * 24));
@@ -204,22 +210,22 @@
                 let progressBarColor = '#2ecc71'; // Verde padrão
 
                 if (result.daysLeft > 0) {
-                    daysLeftText = `Faltam ${result.daysLeft} dias para a viagem!`;
+                    daysLeftText = `Faltam ${result.daysLeft} dias`;
                 } else if (result.daysLeft === 0) {
-                    daysLeftText = `A viagem é HOJE! Boa viagem!`;
+                    daysLeftText = `A viagem é HOJE!`;
                     progressBarColor = '#3498db'; // Azul para indicar conclusão
                 } else {
-                    daysLeftText = `✅ Viagem concluída em ${result.destinationDate}!`;
+                    daysLeftText = `✅ Concluída`;
                     progressBarColor = '#3498db';
                 }
 
                 const tripHtml = `
                     <div class="trip-card">
                         <h2>${trip.title}</h2>
-                        <p class="date-info">Data: ${result.destinationDate}</p>
+                        <p class="date-info">${result.destinationDate}</p>
                         <div class="progress-bar-container">
                             <div class="progress-bar" style="width: ${result.progressPercentage}%; background-color: ${progressBarColor};">
-                                ${result.progressPercentage}% Concluído
+                                ${result.progressPercentage}%
                             </div>
                         </div>
                         <p class="days-left">${daysLeftText}</p>
