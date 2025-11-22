@@ -3,194 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens – Versão Completa</title>
+<title>Widget Viagens – Completo</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #0d0d0d;
-        color: #ffffff;
-        padding: 25px;
-    }
-
-    #trips-container {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(280px, 1fr));
-        gap: 18px;
-        width: 100%;
-    }
-
-    .trip-card {
-        background: #1a1a1a;
-        border: 1px solid #333;
-        border-radius: 14px;
-        padding: 18px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.6);
-        text-align: center;
-    }
-
-    h2 {
-        margin: 0 0 6px 0;
-        font-size: 1.05rem;
-        font-weight: 600;
-    }
-
-    .date-info {
-        color: #b5b5b5;
-        margin-bottom: 12px;
-        font-size: .9rem;
-    }
-
-    .progress-wrapper {
-        position: relative;
-        height: 26px;
-        background: #2a2a2a;
-        border-radius: 20px;
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        position: absolute;
-        left: 0;
-        top: 0;
-        height: 100%;
-        background: linear-gradient(90deg, #4caf50, #8aff98);
-        width: 0%;
-        transition: width .8s ease;
-    }
-
-    .emoji-icon {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 22px;
-        transition: transform .25s ease;
-    }
-
-    .jump {
-        transform: translateY(-70%);
-    }
-
-    .days-left {
-        margin-top: 12px;
-        font-size: .95rem;
-        color: #e0e0e0;
-    }
-
-    .time-left {
-        color: #8aff98;
-        font-size: .85rem;
-        margin-top: 4px;
-    }
+    body { font-family: Arial, sans-serif; background: #0d0d0d; color: #ffffff; padding: 25px; }
+    #next-destination { background: #1f1f1f; border: 1px solid #333; padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 1.05rem; text-align: center; }
+    #trips-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
+    .trip-card { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 14px; box-shadow: 0 0 8px rgba(0,0,0,0.6); text-align: left; display:flex; flex-direction:column; gap:8px; }
+    .title-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .title-row h3 { margin:0; font-size:1rem; }
+    .date-info { color:#27ae60; font-size:.88rem; }
+    .progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:hidden; margin-top:6px; }
+    .progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; }
+    .progress-percent { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:.78rem; font-weight:600; color:#27ae60; text-shadow:0 1px 2px rgba(0,0,0,0.6); }
+    .emoji-icon { position:absolute; top:50%; transform:translateY(-50%); font-size:20px; transition: left .5s ease, transform .25s ease; }
+    .emoji-jump { animation: jump .6s infinite alternate; }
+    @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
+    .status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
+    .sub { color:#bdbdbd; font-size:.82rem; }
+    #timeline { margin-top:20px; padding:14px; background:#121212; border-radius:10px; border:1px solid #2b2b2b; }
+    .timeline-bar { height:12px; background:#222; border-radius:8px; position:relative; overflow:hidden; }
+    .timeline-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:linear-gradient(90deg,#8aff98,#4caf50); transition: width .6s linear; }
+    .tl-marker { position:absolute; top:16px; font-size:12px; color:#bdbdbd; transform:translateX(-50%); }
 </style>
 </head>
-
 <body>
 
+<div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
+<div id="timeline"><p style="margin:0 0 8px 0;color:#cfcfcf;font-weight:600">Linha do tempo da viagem completa</p><div class="timeline-bar" id="timelineBar"><div class="timeline-fill" id="timelineFill"></div></div></div>
 
 <script>
-// ===== CONFIGURAÇÃO DOS EVENTOS =====
 const TRIPS = [
-    { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19 16:20" },
-    { title: "✈️ Lisboa → Madri", emoji: "✈️", date: "2025-12-23 18:00" },
-    { title: "✈️ Madri → Paris", emoji: "✈️", date: "2025-12-27 14:25" },
-    { title: "🚄 Paris → Londres", emoji: "🚄", date: "2026-01-02 16:12" },
-    { title: "✈️ Londres → Roma", emoji: "✈️", date: "2026-01-08 16:45" },
-    { title: "🚢 Início do Cruzeiro", emoji: "🚢", date: "2026-01-15 11:00", cruiseEnd: "2026-01-22 07:00" },
-    { title: "✈️ Roma → Madri", emoji: "✈️", date: "2026-01-22 14:45" },
-    { title: "✈️ Madri → Lisboa", emoji: "✈️", date: "2026-01-22 21:10" },
-    { title: "✈️ Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22 23:30" }
+    { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", type: "flight" },
+    { title: "✈️ Lisboa → Madri", emoji: "✈️", date: "2025-12-23T18:00:00", type: "flight" },
+    { title: "✈️ Madri → Paris", emoji: "✈️", date: "2025-12-27T14:25:00", type: "flight" },
+    { title: "🚄 Paris → Londres", emoji: "🚄", date: "2026-01-02T16:12:00", type: "train" },
+    { title: "✈️ Londres → Roma", emoji: "✈️", date: "2026-01-08T16:45:00", type: "flight" },
+    { title: "🚢 Civitavecchia (embarque)", emoji: "🚢", date: "2026-01-15T11:00:00", type: "cruise-start", depart: "2026-01-15T19:00:00" },
+    { title: "⚓ Valência", emoji: "🛳️", date: "2026-01-17T07:00:00", type: "cruise-stop", depart: "2026-01-17T21:00:00" },
+    { title: "⚓ Barcelona", emoji: "🛳️", date: "2026-01-18T08:00:00", type: "cruise-stop", depart: "2026-01-18T18:00:00" },
+    { title: "⚓ Marselha", emoji: "🛳️", date: "2026-01-19T08:00:00", type: "cruise-stop", depart: "2026-01-19T18:00:00" },
+    { title: "⚓ Gênova", emoji: "🛳️", date: "2026-01-20T08:00:00", type: "cruise-stop", depart: "2026-01-20T19:00:00" },
+    { title: "⚓ Livorno", emoji: "🛳️", date: "2026-01-21T07:00:00", type: "cruise-stop", depart: "2026-01-21T20:00:00" },
+    { title: "🚢 Fim do Cruzeiro – Civitavecchia", emoji: "🚢", date: "2026-01-22T07:00:00", type: "cruise-end" },
+    { title: "✈️ Roma → Madri", emoji: "✈️", date: "2026-01-22T14:45:00", type: "flight" },
+    { title: "✈️ Madri → Lisboa", emoji: "✈️", date: "2026-01-22T21:10:00", type: "flight" },
+    { title: "✈️ Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22T23:30:00", type: "flight" }
 ];
 
-function formatDiff(ms) {
-    if (ms <= 0) return "0h 0m 0s";
-    const totalSeconds = Math.floor(ms / 1000);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return `${h}h ${m}m ${s}s`;
+const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, v)); }
+function getColorForTimeLeft(msLeft){ if(msLeft <= 3600000) return "#27ae60"; if(msLeft <= 86400000) return "#f1c40f"; if(msLeft <= 604800000) return "#e67e22"; return "#4b6b82"; }
+
+function formatCountdown(target, now){ const diff = target - now; if(diff <= 0) return "0 dias 0h 0m 0s";
+    const s = Math.floor(diff/1000);
+    const dias = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${dias} dias ${h}h ${m}m ${sec}s`;
 }
 
-function isSameDay(a, b) {
-    return a.getFullYear() === b.getFullYear() &&
-           a.getMonth() === b.getMonth() &&
-           a.getDate() === b.getDate();
-}
-
-function render() {
-    const container = document.getElementById("trips-container");
-    container.innerHTML = "";
-
+function render(){
     const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const container = document.getElementById('trips-container');
+    container.innerHTML = '';
 
-    TRIPS.forEach((trip, index) => {
-        const target = new Date(trip.date.replace(" ", "T"));
-        const totalWindow = target - startOfYear;
-        const done = now - startOfYear;
+    const future = TRIPS.filter(t=>new Date(t.date) > now).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    document.getElementById('next-destination').textContent = future.length ? `Próximo destino: ${future[0].title} — ${new Date(future[0].date).toLocaleString('pt-BR')}` : 'Próximo destino: nenhuma viagem futura';
 
-        let progress = (done / totalWindow) * 100;
-        if (progress < 0) progress = 0;
-        if (progress > 100) progress = 100;
+    const start = new Date(TRIPS[0].date).getTime();
+    const end = new Date(TRIPS[TRIPS.length-1].date).getTime() + 7200000;
+    const totalRange = end - start;
+    const overallProgress = clamp(((now.getTime() - start)/totalRange)*100, 0, 100);
+    document.getElementById('timelineFill').style.width = overallProgress + '%';
 
-        const diff = target - now;
-        const daysLeft = Math.ceil(diff / 86400000);
+    const tlBar = document.getElementById('timelineBar');
+    Array.from(tlBar.querySelectorAll('.tl-marker')).forEach(n=>n.remove());
+    TRIPS.forEach(t=>{
+        const tMs = new Date(t.date).getTime();
+        const pos = clamp(((tMs - start)/totalRange)*100, 0,100);
+        const m = document.createElement('div');
+        m.className = 'tl-marker';
+        m.style.left = pos + '%';
+        m.textContent = t.title.split('–')[0].trim();
+        tlBar.appendChild(m);
+    });
 
-        let statusMessage = formatDiff(diff);
+    for(const trip of TRIPS){
+        const target = new Date(trip.date);
+        const depart = trip.depart ? new Date(trip.depart) : null;
+        const msLeft = target - now;
 
-        // === REGRAS DE MENSAGENS ===
-        const oneHourBefore = target - 3600000;
-        const thirtyAfter = target.getTime() + 30 * 60000;
-        const threeHoursAfter = target.getTime() + 3 * 3600000;
+        let progressPct = 0;
+        const windowStart = target.getTime() - MAX_WINDOW_MS;
+        progressPct = clamp(((now.getTime() - windowStart) / MAX_WINDOW_MS) * 100, 0, 100);
+        if(msLeft <= 0) progressPct = 100;
+        else progressPct = clamp(((MAX_WINDOW_MS - msLeft) / MAX_WINDOW_MS) * 100, 0, 100);
 
-        let activeCruiseEnd = null;
-        if (trip.cruiseEnd) activeCruiseEnd = new Date(trip.cruiseEnd.replace(" ", "T"));
+        const card = document.createElement('div');
+        card.className = 'trip-card';
 
-        if (isSameDay(now, target)) {
-            if (now >= target && now < thirtyAfter) statusMessage = "Embarque concluído. Boa viagem!";
-            else if (now >= thirtyAfter && now < threeHoursAfter) statusMessage = "Viagem finalizada.";
-            else if (now >= threeHoursAfter && activeCruiseEnd === null) statusMessage = "Viagem finalizada.";
-            else if (now >= thirtyAfter && activeCruiseEnd && now < activeCruiseEnd) statusMessage = "Embarque concluído. Boa viagem!";
-        }
+        const color = getColorForTimeLeft(msLeft > MAX_WINDOW_MS ? MAX_WINDOW_MS : msLeft);
+        const emojiLeft = `calc(${progressPct}% - 10px)`;
 
-        if (now >= oneHourBefore && now < target) statusMessage = "Hora de embarcar.";
+        let status = `Partida prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
 
-        if (activeCruiseEnd && now >= activeCruiseEnd) statusMessage = "Viagem finalizada.";
-
-        const card = document.createElement("div");
-        card.className = "trip-card";
         card.innerHTML = `
-            <h2>${trip.title}</h2>
-            <p class="date-info">${target.toLocaleString("pt-BR")}</p>
+            <div class="title-row"><h3>${trip.title}</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
 
             <div class="progress-wrapper">
-                <div class="progress-fill" id="fill${index}" style="width:${progress}%"></div>
-                <div class="emoji-icon" id="emoji${index}" style="left: calc(${progress}% - 10px)">${trip.emoji}</div>
+                <div class="progress-fill" style="width:${progressPct}%;background:${color};"></div>
+                <div class="emoji-icon" style="left:${emojiLeft}">${trip.emoji}</div>
+                <div class="progress-percent">${Math.round(progressPct)}%</div>
             </div>
 
-            <p class="days-left">Faltam ${daysLeft} dias</p>
-            <p class="time-left">${statusMessage}</p>
+            <div class="status">${status}</div>
+            <div class="sub" style="color:#27ae60">Faltam ${formatCountdown(target, now)}</div>
         `;
 
         container.appendChild(card);
-
-        // ===== ANIMAÇÃO DO EMOJI =====
-        const emoji = document.getElementById(`emoji${index}`);
-        const tripDay = isSameDay(now, target);
-        const afterTrip = now > target;
-
-        if (tripDay && !afterTrip) {
-            emoji.classList.add("jump");
-        } else {
-            emoji.classList.remove("jump");
-        }
-    });
+    }
 }
 
 setInterval(render, 1000);
 render();
 </script>
-
 </body>
 </html>
