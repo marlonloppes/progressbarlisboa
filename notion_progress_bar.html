@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contagem Regressiva da Viagem</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f7f7f7; /* Fundo claro para combinar com o Notion */
+            color: #37352f; /* Cor do texto padrão do Notion */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+            height: 30px;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #2ecc71; /* Cor verde vibrante */
+            width: 0;
+            transition: width 0.5s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .days-left {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #37352f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ Viagem em Contagem Regressiva!</h1>
+        <p id="date-info"></p>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <p class="days-left" id="days-left"></p>
+    </div>
+
+    <script>
+        // Data de destino fornecida pelo usuário: 19/12/2025
+        const DESTINATION_DATE = new Date("2025-12-19T00:00:00");
+        
+        // Data de início para o cálculo do progresso. 
+        // Usaremos 01/01/2025 como ponto de partida para um progresso anual,
+        // ou a data atual para um progresso desde hoje.
+        // Para uma barra de progresso que "preenche conforme a data se aproxima",
+        // o ideal é calcular o progresso dentro de um período fixo (ex: ano) ou
+        // o tempo decorrido desde um ponto inicial até o final.
+        // Vamos usar o ano de 2025 como o período total.
+        const START_DATE = new Date("2025-01-01T00:00:00");
+        
+        // Se o usuário quiser o progresso apenas do tempo restante, o cálculo é mais simples:
+        // Porcentagem = (Tempo total - Tempo restante) / Tempo total
+        
+        // Vamos definir o período total como o tempo entre o início do ano e a data da viagem.
+        const TOTAL_DURATION_MS = DESTINATION_DATE.getTime() - START_DATE.getTime();
+
+        document.getElementById('date-info').textContent = `Data da Viagem: ${DESTINATION_DATE.toLocaleDateString('pt-BR')}`;
+
+        function updateProgressBar() {
+            const now = new Date();
+            
+            // 1. Calcular o tempo decorrido desde o início do período até agora
+            const ELAPSED_TIME_MS = now.getTime() - START_DATE.getTime();
+            
+            // 2. Calcular o progresso
+            let progressPercentage = (ELAPSED_TIME_MS / TOTAL_DURATION_MS) * 100;
+
+            // 3. Garantir que o progresso não ultrapasse 100%
+            if (progressPercentage > 100) {
+                progressPercentage = 100;
+            }
+            
+            // 4. Calcular os dias restantes
+            const TIME_LEFT_MS = DESTINATION_DATE.getTime() - now.getTime();
+            const DAYS_LEFT = Math.ceil(TIME_LEFT_MS / (1000 * 60 * 60 * 24));
+
+            const progressBar = document.getElementById('progress-bar');
+            const daysLeftElement = document.getElementById('days-left');
+
+            progressBar.style.width = progressPercentage.toFixed(2) + '%';
+            progressBar.textContent = progressPercentage.toFixed(1) + '% Concluído';
+
+            if (DAYS_LEFT > 0) {
+                daysLeftElement.textContent = `Faltam ${DAYS_LEFT} dias para a viagem!`;
+            } else if (DAYS_LEFT === 0) {
+                daysLeftElement.textContent = `A viagem é HOJE! Boa viagem!`;
+                progressBar.textContent = '100% Concluído';
+                progressBar.style.backgroundColor = '#3498db'; /* Azul para indicar conclusão */
+            } else {
+                daysLeftElement.textContent = `A viagem já aconteceu em ${DESTINATION_DATE.toLocaleDateString('pt-BR')}!`;
+                progressBar.textContent = '100% Concluído';
+                progressBar.style.backgroundColor = '#3498db';
+            }
+            
+            // Se a viagem ainda não aconteceu, atualiza a cada hora para economizar recursos,
+            // ou a cada minuto para maior precisão. Vamos usar a cada 1 hora.
+            if (DAYS_LEFT > 0) {
+                setTimeout(updateProgressBar, 1000 * 60 * 60); // Atualiza a cada 1 hora
+            }
+        }
+
+        // Executa a função imediatamente
+        updateProgressBar();
+    </script>
+</body>
+</html>
