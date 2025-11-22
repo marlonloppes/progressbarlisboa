@@ -1,130 +1,195 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Contador de Viagem</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Viagens – Versão Completa</title>
 
 <style>
     body {
-        background: #0f0f0f;
-        color: #ffffff;
         font-family: Arial, sans-serif;
-        padding: 30px;
+        background: #0d0d0d;
+        color: #ffffff;
+        padding: 25px;
     }
 
-    .box {
-        margin-bottom: 40px;
-        padding: 20px;
+    #trips-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+        width: 100%;
+    }
+
+    .trip-card {
         background: #1a1a1a;
-        border-radius: 15px;
         border: 1px solid #333;
-        box-shadow: 0 0 10px #000;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.6);
+        text-align: center;
     }
 
     h2 {
-        margin: 0 0 15px 0;
-        color: #ffffff;
+        margin: 0 0 6px 0;
+        font-size: 1.05rem;
+        font-weight: 600;
     }
 
-    .bar-container {
-        width: 100%;
-        height: 25px;
-        background: #333;
-        border-radius: 30px;
+    .date-info {
+        color: #b5b5b5;
+        margin-bottom: 12px;
+        font-size: .9rem;
+    }
+
+    .progress-wrapper {
+        position: relative;
+        height: 26px;
+        background: #2a2a2a;
+        border-radius: 20px;
         overflow: hidden;
     }
 
-    .bar {
+    .progress-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
         height: 100%;
+        background: linear-gradient(90deg, #4caf50, #8aff98);
         width: 0%;
-        transition: width 0.7s ease-out;
-        border-radius: 30px;
+        transition: width .8s ease;
     }
 
-    .percent-text {
-        margin-top: 10px;
-        font-size: 18px;
-        color: #ccc;
-    }
-
-    .emoji {
-        font-size: 26px;
-        display: inline-block;
-        position: relative;
-        transition: transform 0.2s ease;
+    .emoji-icon {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 22px;
+        transition: transform .25s ease;
     }
 
     .jump {
-        transform: translateY(-12px);
+        transform: translateY(-70%);
+    }
+
+    .days-left {
+        margin-top: 12px;
+        font-size: .95rem;
+        color: #e0e0e0;
+    }
+
+    .time-left {
+        color: #8aff98;
+        font-size: .85rem;
+        margin-top: 4px;
     }
 </style>
 </head>
 
 <body>
 
-<h1>Rumo à Europa 🌍✈️</h1>
-
-<div class="box">
-    <h2>Chegada a Lisboa — 20/12/2025</h2>
-    <div class="emoji" id="emoji1">🇵🇹</div>
-
-    <div class="bar-container">
-        <div class="bar" id="bar1"></div>
-    </div>
-    <div class="percent-text" id="text1"></div>
-</div>
-
-<div class="box">
-    <h2>Início do Cruzeiro — 15/01/2026</h2>
-    <div class="emoji" id="emoji2">🚢</div>
-
-    <div class="bar-container">
-        <div class="bar" id="bar2"></div>
-    </div>
-    <div class="percent-text" id="text2"></div>
-</div>
-
-<div class="box">
-    <h2>Retorno ao Brasil — 22/01/2026</h2>
-    <div class="emoji" id="emoji3">🇧🇷</div>
-
-    <div class="bar-container">
-        <div class="bar" id="bar3"></div>
-    </div>
-    <div class="percent-text" id="text3"></div>
-</div>
+<div id="trips-container"></div>
 
 <script>
-function atualizarBarra(inicio, fim, barId, textId, emojiId) {
-    const agora = new Date();
-    const dataInicio = new Date(inicio);
-    const dataFim = new Date(fim);
+// ===== CONFIGURAÇÃO DOS EVENTOS =====
+const TRIPS = [
+    { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19 16:20" },
+    { title: "✈️ Lisboa → Madri", emoji: "✈️", date: "2025-12-23 18:00" },
+    { title: "✈️ Madri → Paris", emoji: "✈️", date: "2025-12-27 14:25" },
+    { title: "🚄 Paris → Londres", emoji: "🚄", date: "2026-01-02 16:12" },
+    { title: "✈️ Londres → Roma", emoji: "✈️", date: "2026-01-08 16:45" },
+    { title: "🚢 Início do Cruzeiro", emoji: "🚢", date: "2026-01-15 11:00", cruiseEnd: "2026-01-22 07:00" },
+    { title: "✈️ Roma → Madri", emoji: "✈️", date: "2026-01-22 14:45" },
+    { title: "✈️ Madri → Lisboa", emoji: "✈️", date: "2026-01-22 21:10" },
+    { title: "✈️ Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22 23:30" }
+];
 
-    const total = dataFim - dataInicio;
-    const atual = agora - dataInicio;
-
-    let progresso = (atual / total) * 100;
-    progresso = Math.max(0, Math.min(100, progresso));
-
-    const bar = document.getElementById(barId);
-    const texto = document.getElementById(textId);
-    const emoji = document.getElementById(emojiId);
-
-    bar.style.width = progresso + "%";
-    texto.textContent = progresso.toFixed(1) + "% concluído";
-
-    if (progresso > 85) {
-        emoji.classList.add("jump");
-        setTimeout(() => emoji.classList.remove("jump"), 200);
-    }
+function formatDiff(ms) {
+    if (ms <= 0) return "0h 0m 0s";
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h}h ${m}m ${s}s`;
 }
 
-// Chamadas e datas reais da sua viagem:
-setInterval(() => {
-    atualizarBarra("2025-01-01", "2025-12-20", "bar1", "text1", "emoji1");
-    atualizarBarra("2025-12-20", "2026-01-15", "bar2", "text2", "emoji2");
-    atualizarBarra("2026-01-15", "2026-01-22", "bar3", "text3", "emoji3");
-}, 1000);
+function isSameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() &&
+           a.getMonth() === b.getMonth() &&
+           a.getDate() === b.getDate();
+}
+
+function render() {
+    const container = document.getElementById("trips-container");
+    container.innerHTML = "";
+
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    TRIPS.forEach((trip, index) => {
+        const target = new Date(trip.date.replace(" ", "T"));
+        const totalWindow = target - startOfYear;
+        const done = now - startOfYear;
+
+        let progress = (done / totalWindow) * 100;
+        if (progress < 0) progress = 0;
+        if (progress > 100) progress = 100;
+
+        const diff = target - now;
+        const daysLeft = Math.ceil(diff / 86400000);
+
+        let statusMessage = formatDiff(diff);
+
+        // === REGRAS DE MENSAGENS ===
+        const oneHourBefore = target - 3600000;
+        const thirtyAfter = target.getTime() + 30 * 60000;
+        const threeHoursAfter = target.getTime() + 3 * 3600000;
+
+        let activeCruiseEnd = null;
+        if (trip.cruiseEnd) activeCruiseEnd = new Date(trip.cruiseEnd.replace(" ", "T"));
+
+        if (isSameDay(now, target)) {
+            if (now >= target && now < thirtyAfter) statusMessage = "Embarque concluído. Boa viagem!";
+            else if (now >= thirtyAfter && now < threeHoursAfter) statusMessage = "Viagem finalizada.";
+            else if (now >= threeHoursAfter && activeCruiseEnd === null) statusMessage = "Viagem finalizada.";
+            else if (now >= thirtyAfter && activeCruiseEnd && now < activeCruiseEnd) statusMessage = "Embarque concluído. Boa viagem!";
+        }
+
+        if (now >= oneHourBefore && now < target) statusMessage = "Hora de embarcar.";
+
+        if (activeCruiseEnd && now >= activeCruiseEnd) statusMessage = "Viagem finalizada.";
+
+        const card = document.createElement("div");
+        card.className = "trip-card";
+        card.innerHTML = `
+            <h2>${trip.title}</h2>
+            <p class="date-info">${target.toLocaleString("pt-BR")}</p>
+
+            <div class="progress-wrapper">
+                <div class="progress-fill" id="fill${index}" style="width:${progress}%"></div>
+                <div class="emoji-icon" id="emoji${index}" style="left: calc(${progress}% - 10px)">${trip.emoji}</div>
+            </div>
+
+            <p class="days-left">Faltam ${daysLeft} dias</p>
+            <p class="time-left">${statusMessage}</p>
+        `;
+
+        container.appendChild(card);
+
+        // ===== ANIMAÇÃO DO EMOJI =====
+        const emoji = document.getElementById(`emoji${index}`);
+        const tripDay = isSameDay(now, target);
+        const afterTrip = now > target;
+
+        if (tripDay && !afterTrip) {
+            emoji.classList.add("jump");
+        } else {
+            emoji.classList.remove("jump");
+        }
+    });
+}
+
+setInterval(render, 1000);
+render();
 </script>
 
 </body>
