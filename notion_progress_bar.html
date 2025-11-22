@@ -168,37 +168,25 @@
 
         const container = document.getElementById('trips-container');
 
-        function calculateProgress(trip) {
-            const DESTINATION_DATE = new Date(trip.destinationDate + "T00:00:00");
-            const CREATION_DATE = now;;
-            const now = new Date();
-            
-            // CORREÇÃO: A data de criação deve ser a data atual para que o progresso comece a partir de hoje.
-            // Se a data de criação for fixada em 2025-11-22, o cálculo está correto, mas o tempo decorrido é pequeno.
-            // Vamos manter a lógica de tempo decorrido / tempo total, mas garantir que o tempo total seja o tempo
-            // entre a data de criação e a data de destino.
-            
-            const TOTAL_DURATION_MS = DESTINATION_DATE.getTime() - CREATION_DATE.getTime();
-            const ELAPSED_TIME_MS = now.getTime() - CREATION_DATE.getTime();
-            const TIME_LEFT_MS = DESTINATION_DATE.getTime() - now.getTime();
-            
-            const DAYS_LEFT = Math.ceil(TIME_LEFT_MS / (1000 * 60 * 60 * 24));
+       function calculateProgress(trip) {
+    const DESTINATION_DATE = new Date(trip.destinationDate + "T00:00:00");
+    const now = new Date();
 
-            let progressPercentage = (ELAPSED_TIME_MS / TOTAL_DURATION_MS) * 100;
+    const TOTAL_DURATION_MS = DESTINATION_DATE.getTime() - now.getTime();
+    const ELAPSED_TIME_MS = 0; // começa em zero
+    const TIME_LEFT_MS = DESTINATION_DATE.getTime() - now.getTime();
 
-            if (progressPercentage > 100) {
-                progressPercentage = 100;
-            }
-            if (progressPercentage < 0) {
-                progressPercentage = 0;
-            }
+    const DAYS_LEFT = Math.ceil(TIME_LEFT_MS / (1000 * 60 * 60 * 24));
 
-            return {
-                progressPercentage: progressPercentage.toFixed(1),
-                daysLeft: DAYS_LEFT,
-                destinationDate: DESTINATION_DATE.toLocaleDateString('pt-BR')
-            };
-        }
+    let progressPercentage = (1 - (TIME_LEFT_MS / (DESTINATION_DATE.getTime() - now.getTime()))) * 100;
+    progressPercentage = 0; // como o início é hoje
+
+    return {
+        progressPercentage: progressPercentage.toFixed(1),
+        daysLeft: DAYS_LEFT,
+        destinationDate: DESTINATION_DATE.toLocaleDateString('pt-BR')
+    };
+}
 
         function renderTrips() {
             container.innerHTML = ''; // Limpa o container antes de renderizar
