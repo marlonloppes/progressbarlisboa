@@ -1,154 +1,130 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens</title>
+<title>Contador de Viagem</title>
 
 <style>
     body {
-        font-family: sans-serif;
-        background: transparent;
-        margin: 0;
+        background: #0f0f0f;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        padding: 30px;
+    }
+
+    .box {
+        margin-bottom: 40px;
         padding: 20px;
-        display: flex;
-        justify-content: center;
-    }
-
-    #trips-container {
-        width: 100%;
-        max-width: 1000px;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 15px;
-    }
-
-    .trip-card {
-        background: #fff;
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        text-align: center;
+        background: #1a1a1a;
+        border-radius: 15px;
+        border: 1px solid #333;
+        box-shadow: 0 0 10px #000;
     }
 
     h2 {
-        margin: 0 0 5px 0;
-        font-size: 1.1rem;
+        margin: 0 0 15px 0;
+        color: #ffffff;
     }
 
-    .date-info {
-        color: #666;
-        font-size: .9rem;
-        margin-bottom: 10px;
-    }
-
-    .progress-wrapper {
-        position: relative;
+    .bar-container {
         width: 100%;
         height: 25px;
-        background: #e0e0e0;
-        border-radius: 20px;
+        background: #333;
+        border-radius: 30px;
         overflow: hidden;
-        margin-bottom: 10px;
     }
 
-    .progress-fill {
+    .bar {
         height: 100%;
-        background: #4caf50;
         width: 0%;
-        transition: width 0.6s ease;
+        transition: width 0.7s ease-out;
+        border-radius: 30px;
     }
 
-    .progress-emoji {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 20px;
-        pointer-events: none;
-        transition: left .6s ease;
+    .percent-text {
+        margin-top: 10px;
+        font-size: 18px;
+        color: #ccc;
     }
 
-    .days-left {
-        color: #333;
-        font-weight: 500;
+    .emoji {
+        font-size: 26px;
+        display: inline-block;
+        position: relative;
+        transition: transform 0.2s ease;
+    }
+
+    .jump {
+        transform: translateY(-12px);
     }
 </style>
-
 </head>
+
 <body>
 
-<div id="trips-container"></div>
+<h1>Rumo à Europa 🌍✈️</h1>
+
+<div class="box">
+    <h2>Chegada a Lisboa — 20/12/2025</h2>
+    <div class="emoji" id="emoji1">🇵🇹</div>
+
+    <div class="bar-container">
+        <div class="bar" id="bar1"></div>
+    </div>
+    <div class="percent-text" id="text1"></div>
+</div>
+
+<div class="box">
+    <h2>Início do Cruzeiro — 15/01/2026</h2>
+    <div class="emoji" id="emoji2">🚢</div>
+
+    <div class="bar-container">
+        <div class="bar" id="bar2"></div>
+    </div>
+    <div class="percent-text" id="text2"></div>
+</div>
+
+<div class="box">
+    <h2>Retorno ao Brasil — 22/01/2026</h2>
+    <div class="emoji" id="emoji3">🇧🇷</div>
+
+    <div class="bar-container">
+        <div class="bar" id="bar3"></div>
+    </div>
+    <div class="percent-text" id="text3"></div>
+</div>
 
 <script>
-const TRIPS = [
-    { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-18" },
-    { title: "✈️ Lisboa → Madri", emoji: "✈️", date: "2025-12-22" },
-    { title: "✈️ Madri → Paris", emoji: "✈️", date: "2025-12-26" },
-    { title: "🚄 Paris → Londres", emoji: "🚄", date: "2026-01-01" },
-    { title: "✈️ Londres → Roma", emoji: "✈️", date: "2026-01-07" },
-    { title: "🚢 Início do Cruzeiro", emoji: "🚢", date: "2026-01-14" },
-    { title: "✈️ Roma → Madri", emoji: "✈️", date: "2026-01-21" },
-    { title: "✈️ Madri → Lisboa", emoji: "✈️", date: "2026-01-21" },
-    { title: "✈️ Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-21" }
-];
+function atualizarBarra(inicio, fim, barId, textId, emojiId) {
+    const agora = new Date();
+    const dataInicio = new Date(inicio);
+    const dataFim = new Date(fim);
 
-function calculateProgress(destinationDate) {
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    const total = dataFim - dataInicio;
+    const atual = agora - dataInicio;
 
-    const dest = new Date(destinationDate);
-    dest.setHours(0,0,0,0);
+    let progresso = (atual / total) * 100;
+    progresso = Math.max(0, Math.min(100, progresso));
 
-    // dias totais desde hoje até a viagem
-    const totalDays = Math.max(1, (dest - today) / 86400000);
+    const bar = document.getElementById(barId);
+    const texto = document.getElementById(textId);
+    const emoji = document.getElementById(emojiId);
 
-    // dias restantes
-    const daysLeft = Math.ceil(totalDays);
+    bar.style.width = progresso + "%";
+    texto.textContent = progresso.toFixed(1) + "% concluído";
 
-    // progresso real
-    let progress = ((totalDays - daysLeft) / totalDays) * 100;
-
-    if (progress < 0) progress = 0;
-    if (progress > 100) progress = 100;
-
-    return {
-        progress,
-        daysLeft,
-        dateBR: dest.toLocaleDateString("pt-BR")
-    };
+    if (progresso > 85) {
+        emoji.classList.add("jump");
+        setTimeout(() => emoji.classList.remove("jump"), 200);
+    }
 }
 
-function renderTrips() {
-    const container = document.getElementById("trips-container");
-    container.innerHTML = "";
-
-    TRIPS.forEach(trip => {
-        const r = calculateProgress(trip.date);
-
-        const card = `
-        <div class="trip-card">
-            <h2>${trip.title}</h2>
-            <p class="date-info">${r.dateBR}</p>
-
-            <div class="progress-wrapper">
-                <div class="progress-fill" style="width:${r.progress}%"></div>
-                <div class="progress-emoji" style="left: calc(${r.progress}% - 10px);">
-                    ${trip.emoji}
-                </div>
-            </div>
-
-            <p class="days-left">Faltam ${r.daysLeft} dias</p>
-        </div>
-        `;
-
-        container.innerHTML += card;
-    });
-
-    // atualiza automaticamente a cada 1h
-    setTimeout(renderTrips, 3600000);
-}
-
-renderTrips();
+// Chamadas e datas reais da sua viagem:
+setInterval(() => {
+    atualizarBarra("2025-01-01", "2025-12-20", "bar1", "text1", "emoji1");
+    atualizarBarra("2025-12-20", "2026-01-15", "bar2", "text2", "emoji2");
+    atualizarBarra("2026-01-15", "2026-01-22", "bar3", "text3", "emoji3");
+}, 1000);
 </script>
 
 </body>
