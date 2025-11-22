@@ -65,7 +65,7 @@
         transform: translateY(-50%);
         font-size: 20px;
         pointer-events: none;
-        transition: transform .6s ease;
+        transition: left .6s ease;
     }
 
     .days-left {
@@ -93,28 +93,28 @@ const TRIPS = [
 ];
 
 function calculateProgress(destinationDate) {
-    const DEST = new Date(destinationDate + "T00:00:00");
-    const NOW = new Date();
-    
-    const TOTAL_MS = DEST - NOW; // tempo faltando
-    const START = NOW; // começa AGORA
-    const END = DEST;
+    const today = new Date();
+    today.setHours(0,0,0,0);
 
-    const TOTAL_DURATION = END - START;
-    const ELAPSED = 0; // sempre começa do zero
-    const DAYS_LEFT = Math.ceil((DEST - NOW) / 86400000);
+    const dest = new Date(destinationDate);
+    dest.setHours(0,0,0,0);
 
-    // progresso cresce conforme a data se aproxima
-    const daysTotal = (DEST - NOW) / 86400000;
-    const daysPassedFromStart = 0; // sempre hoje
-    let progress = 100 - (DAYS_LEFT / daysTotal * 100);
+    // dias totais desde hoje até a viagem
+    const totalDays = Math.max(1, (dest - today) / 86400000);
+
+    // dias restantes
+    const daysLeft = Math.ceil(totalDays);
+
+    // progresso real
+    let progress = ((totalDays - daysLeft) / totalDays) * 100;
+
     if (progress < 0) progress = 0;
     if (progress > 100) progress = 100;
 
     return {
         progress,
-        daysLeft: DAYS_LEFT,
-        dateBR: DEST.toLocaleDateString("pt-BR")
+        daysLeft,
+        dateBR: dest.toLocaleDateString("pt-BR")
     };
 }
 
@@ -132,7 +132,7 @@ function renderTrips() {
 
             <div class="progress-wrapper">
                 <div class="progress-fill" style="width:${r.progress}%"></div>
-                <div class="progress-emoji" style="transform: translate(${r.progress}%, -50%)">
+                <div class="progress-emoji" style="left: calc(${r.progress}% - 10px);">
                     ${trip.emoji}
                 </div>
             </div>
@@ -144,7 +144,8 @@ function renderTrips() {
         container.innerHTML += card;
     });
 
-    setTimeout(renderTrips, 1000 * 60 * 60); // atualiza a cada 1h
+    // atualiza automaticamente a cada 1h
+    setTimeout(renderTrips, 3600000);
 }
 
 renderTrips();
