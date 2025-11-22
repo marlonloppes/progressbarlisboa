@@ -1,165 +1,154 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trips Countdown Widget</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Viagens</title>
 
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: start;
-            margin: 0;
-            padding: 15px;
-            background: transparent;
-            color: #242424;
-        }
+<style>
+    body {
+        font-family: sans-serif;
+        background: transparent;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+    }
 
-        #trips-container {
-            width: 100%;
-            max-width: 1000px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-        }
+    #trips-container {
+        width: 100%;
+        max-width: 1000px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 15px;
+    }
 
-        .trip-card {
-            padding: 15px;
-            border-radius: 10px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
+    .trip-card {
+        background: #fff;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        text-align: center;
+    }
 
-        h2 {
-            margin: 0 0 8px 0;
-            font-size: 1em;
-            font-weight: 600;
-        }
+    h2 {
+        margin: 0 0 5px 0;
+        font-size: 1.1rem;
+    }
 
-        .date-info {
-            font-size: 0.8em;
-            margin-bottom: 10px;
-            color: #6a6a6a;
-        }
+    .date-info {
+        color: #666;
+        font-size: .9rem;
+        margin-bottom: 10px;
+    }
 
-        .progress-bar-container {
-            width: 100%;
-            height: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #e0e0e0;
-        }
+    .progress-wrapper {
+        position: relative;
+        width: 100%;
+        height: 25px;
+        background: #e0e0e0;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
 
-        .progress-bar {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 0.75em;
-            text-shadow: 0 1px 2px black;
-            transition: width 0.8s ease;
-        }
+    .progress-fill {
+        height: 100%;
+        background: #4caf50;
+        width: 0%;
+        transition: width 0.6s ease;
+    }
 
-        .days-left {
-            font-size: 0.85em;
-            margin-top: 8px;
-            font-weight: 500;
-        }
+    .progress-emoji {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        pointer-events: none;
+        transition: transform .6s ease;
+    }
 
-        @media (prefers-color-scheme: dark) {
-            body { color: #eaeaea; }
-            .trip-card { background-color: #2f3437; }
-            .date-info { color: #cccccc; }
-            .progress-bar-container { background: #555; }
-        }
-    </style>
+    .days-left {
+        color: #333;
+        font-weight: 500;
+    }
+</style>
+
 </head>
 <body>
 
-    <div id="trips-container"></div>
+<div id="trips-container"></div>
 
-    <script>
-        // =============================
-        // SUA LISTA DE VIAGENS
-        // =============================
-        const TRIPS = [
-            { title: "✈️ Guarulhos → Lisboa",      date: "2025-12-19" },
-            { title: "✈️ Lisboa → Madri",          date: "2025-12-23" },
-            { title: "✈️ Madri → Paris",           date: "2025-12-27" },
-            { title: "🚄 Paris → Londres",          date: "2026-01-02" },
-            { title: "✈️ Londres → Roma",          date: "2026-01-08" },
-            { title: "🚢 Início do Cruzeiro",       date: "2026-01-15" },
-            { title: "✈️ Roma → Madri",            date: "2026-01-22" },
-            { title: "✈️ Madri → Lisboa",          date: "2026-01-22" },
-            { title: "✈️ Lisboa → Guarulhos",      date: "2026-01-22" }
-        ];
+<script>
+const TRIPS = [
+    { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-18" },
+    { title: "✈️ Lisboa → Madri", emoji: "✈️", date: "2025-12-22" },
+    { title: "✈️ Madri → Paris", emoji: "✈️", date: "2025-12-26" },
+    { title: "🚄 Paris → Londres", emoji: "🚄", date: "2026-01-01" },
+    { title: "✈️ Londres → Roma", emoji: "✈️", date: "2026-01-07" },
+    { title: "🚢 Início do Cruzeiro", emoji: "🚢", date: "2026-01-14" },
+    { title: "✈️ Roma → Madri", emoji: "✈️", date: "2026-01-21" },
+    { title: "✈️ Madri → Lisboa", emoji: "✈️", date: "2026-01-21" },
+    { title: "✈️ Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-21" }
+];
 
-        const container = document.getElementById("trips-container");
+function calculateProgress(destinationDate) {
+    const DEST = new Date(destinationDate + "T00:00:00");
+    const NOW = new Date();
+    
+    const TOTAL_MS = DEST - NOW; // tempo faltando
+    const START = NOW; // começa AGORA
+    const END = DEST;
 
-        function calculateProgress(destinationDate) {
-            const dest = new Date(destinationDate + "T00:00:00");
-            const today = new Date();
+    const TOTAL_DURATION = END - START;
+    const ELAPSED = 0; // sempre começa do zero
+    const DAYS_LEFT = Math.ceil((DEST - NOW) / 86400000);
 
-            const totalMs = dest.getTime() - today.getTime();
-            const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
+    // progresso cresce conforme a data se aproxima
+    const daysTotal = (DEST - NOW) / 86400000;
+    const daysPassedFromStart = 0; // sempre hoje
+    let progress = 100 - (DAYS_LEFT / daysTotal * 100);
+    if (progress < 0) progress = 0;
+    if (progress > 100) progress = 100;
 
-            let progress = 100 - ((totalDays / (totalDays + 1)) * 100);
-            if (progress < 0) progress = 0;
-            if (progress > 100) progress = 100;
+    return {
+        progress,
+        daysLeft: DAYS_LEFT,
+        dateBR: DEST.toLocaleDateString("pt-BR")
+    };
+}
 
-            return {
-                progress: progress.toFixed(1),
-                daysLeft: totalDays
-            };
-        }
+function renderTrips() {
+    const container = document.getElementById("trips-container");
+    container.innerHTML = "";
 
-        function render() {
-            container.innerHTML = "";
+    TRIPS.forEach(trip => {
+        const r = calculateProgress(trip.date);
 
-            TRIPS.forEach(trip => {
-                const { progress, daysLeft } = calculateProgress(trip.date);
-                let label = "";
-                let color = "#27ae60";
+        const card = `
+        <div class="trip-card">
+            <h2>${trip.title}</h2>
+            <p class="date-info">${r.dateBR}</p>
 
-                if (daysLeft > 0) {
-                    label = `Faltam ${daysLeft} dias`;
-                } else if (daysLeft === 0) {
-                    label = "É HOJE!";
-                    color = "#3498db";
-                } else {
-                    label = "Concluída";
-                    color = "#3498db";
-                }
+            <div class="progress-wrapper">
+                <div class="progress-fill" style="width:${r.progress}%"></div>
+                <div class="progress-emoji" style="transform: translate(${r.progress}%, -50%)">
+                    ${trip.emoji}
+                </div>
+            </div>
 
-                const card = `
-                    <div class="trip-card">
-                        <h2>${trip.title}</h2>
-                        <p class="date-info">${new Date(trip.date).toLocaleDateString("pt-BR")}</p>
+            <p class="days-left">Faltam ${r.daysLeft} dias</p>
+        </div>
+        `;
 
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" style="width:${progress}%; background:${color}">
-                                ${progress}%
-                            </div>
-                        </div>
+        container.innerHTML += card;
+    });
 
-                        <p class="days-left">${label}</p>
-                    </div>
-                `;
+    setTimeout(renderTrips, 1000 * 60 * 60); // atualiza a cada 1h
+}
 
-                container.innerHTML += card;
-            });
-
-            setTimeout(render, 3600000); // 1h
-        }
-
-        render();
-    </script>
+renderTrips();
+</script>
 
 </body>
 </html>
