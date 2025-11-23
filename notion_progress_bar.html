@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Widget Viagens – Completo</title>
 <style>
-    .country-flag{width:16px;height:12px;object-fit:cover;border-radius:2px;margin-right:4px;}
+    .country-flag{width:18px;height:14px;object-fit:cover;border-radius:2px;margin-left:6px;}
     body { font-family: Arial, sans-serif; background: #0d0d0d; color: #ffffff; padding: 25px; }
     #next-destination { background: #1f1f1f; border: 1px solid #333; padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 1.05rem; text-align: center; }
     #trips-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
     .trip-card { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 14px; box-shadow: 0 0 8px rgba(0,0,0,0.6); text-align: left; display:flex; flex-direction:column; gap:8px; }
     .title-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .title-row h3 { margin:0; font-size:1rem; }
+    .title-row h3 { margin:0; font-size:1rem; display:flex; align-items:center; gap:6px; }
     .date-info { color:#27ae60; font-size:.88rem; }
     .progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:visible; margin-top:6px; }
     .progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; }
@@ -21,23 +21,26 @@
     @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
     .status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
     .sub { color:#bdbdbd; font-size:.82rem; }
+
+    /* Timeline (markers only - no fill bar) */
     #timeline { margin-top:20px; padding:14px; background:#121212; border-radius:10px; border:1px solid #2b2b2b; }
-    .timeline-bar { height:12px; background:#222; border-radius:8px; position:relative; overflow:hidden; }
-    .timeline-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:linear-gradient(90deg,#8aff98,#4caf50); transition: width .6s linear; }
-    .tl-marker { position:absolute; top:-16px; font-size:12px; color:#bdbdbd; transform:translateX(-50%); white-space:nowrap; }
+    .timeline-bar { height:14px; background:transparent; border-radius:8px; position:relative; overflow:visible; }
+    .tl-marker { position:absolute; top:0; font-size:13px; color:#bdbdbd; transform:translateX(-50%); white-space:nowrap; display:flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
+
 <div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
-<div id="timeline">
-  <p style="margin:0 0 8px 0;color:#cfcfcf;font-weight:600">Linha do tempo da viagem</p>
-  <div class="timeline-bar" id="timelineBar">
-    <div class="timeline-fill" id="timelineFill"></div>
-    <div id="timelineStart" class="tl-marker" style="left:0%">🇧🇷 Início — 19/12/2025 😊</div>
-    <div id="timelineFill" class="timeline-fill"></div>
-    <div id="timelineEnd" class="tl-marker" style="left:100%">Fim — 22/01/2026 😢 🇧🇷</div>
-    </div></div>
+
+<!-- timeline bar placeholder (necessário para o script) -->
+<div id="timelineBar" style="display:none"></div>
+
+
+    
+  </div>
+</div>
+
 <script>
 const FLAGS = {
     'Guarulhos': 'https://flagcdn.com/w20/br.png',
@@ -54,11 +57,9 @@ const FLAGS = {
     'Livorno': 'https://flagcdn.com/w20/it.png'
 };
 
-// helpers para extrair local e origem/destino a partir do título
 function cleanLocation(raw){
-    // remove apenas emojis básicos mantendo acentos e caracteres
     return raw
-        .replace(/[☀-➿]/g, '') // símbolos e emojis comuns
+        .replace(/[☀-➿]/g, '')
         .replace(/[()]/g, '')
         .replace(/–.*/g, '')
         .trim();
@@ -71,9 +72,7 @@ function getOriginDest(title){
     const single = cleanLocation(title);
     return { from: single, to: single };
 }
-function flagFor(loc){
-    return FLAGS[loc] ? `<img class='country-flag' src='${FLAGS[loc]}' />` : '';
-} 
+function flagForUrl(loc){ return FLAGS[loc] || null; }
 
 const TRIPS = [
     { title: "Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
@@ -92,6 +91,7 @@ const TRIPS = [
     { title: "Madri → Lisboa", emoji: "✈️", date: "2026-01-22T21:10:00", arrival: "21:35", type: "flight" },
     { title: "Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22T23:30:00", arrival: "06:50", type: "flight" }
 ];
+
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, v)); }
 function getColorForTimeLeft(msLeft){ if(msLeft <= 3600000) return "#27ae60"; if(msLeft <= 86400000) return "#f1c40f"; if(msLeft <= 604800000) return "#e67e22"; return "#4b6b82"; }
@@ -103,6 +103,7 @@ function formatCountdown(target, now){ const diff = target - now; if(diff <= 0) 
     const sec = s % 60;
     return `${dias} dias ${h}h ${m}m ${sec}s`;
 }
+
 function render(){
     const now = new Date();
     const container = document.getElementById('trips-container');
@@ -114,8 +115,7 @@ function render(){
     const start = new Date(TRIPS[0].date).getTime();
     const end = new Date(TRIPS[TRIPS.length-1].date).getTime() + 7200000;
     const totalRange = end - start;
-    const overallProgress = clamp(((now.getTime() - start)/totalRange)*100, 0, 100);
-    document.getElementById('timelineFill').style.width = overallProgress + '%';
+    // timelineFill foi removido conforme pedido
 
     const tlBar = document.getElementById('timelineBar');
     Array.from(tlBar.querySelectorAll('.tl-marker'))
@@ -128,8 +128,15 @@ function render(){
         m.className = 'tl-marker';
         m.style.left = pos + '%';
         const od = getOriginDest(t.title);
-        const flag = flagFor(od.to);
-        m.innerHTML = flag + od.to;
+        const flag = flagForUrl(od.to);
+        if(flag){
+            const img = document.createElement('img');
+            img.src = flag;
+            img.className = 'country-flag';
+            img.style.marginLeft = '6px';
+            m.appendChild(img);
+        }
+        m.appendChild(document.createTextNode(od.to));
         tlBar.appendChild(m);
     });
 
@@ -180,15 +187,22 @@ function render(){
         }
 
         const odCard = getOriginDest(trip.title);
-        let originFlag = flagFor(odCard.from);
-        if(trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end") originFlag = "";
-        const destFlag = flagFor(odCard.to);
+        let originFlag = flagForUrl(odCard.from);
+        if(trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end") originFlag = null;
+        const destFlagUrl = flagForUrl(odCard.to);
+        const destFlag = destFlagUrl ? `<img class='country-flag' src='${destFlagUrl}' />` : '';
+
+        // título com bandeiras (origem antes, destino depois)
         card.innerHTML = `
-            <div class="title-row"><h3>${originFlag}${trip.title} ${destFlag}</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
+            <div class="title-row"><h3>${
+                (trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end")
+                ? `${odCard.to}${destFlag}`
+                : `${originFlag ? `<img class='country-flag' src='${originFlag}' />` : ''}${odCard.from} → ${odCard.to}${destFlag}`
+            }</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
 
             <div class="progress-wrapper">
                 <div class="progress-fill" style="width:${progressPct}%;background:${color};"></div>
-                <div class="emoji-icon" style="left:${emojiLeft}">${trip.emoji}</div>
+                <div class="emoji-icon" style="left:${emojiLeft}">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
                 <div class="progress-percent">${Math.round(progressPct)}%</div>
             </div>
 
@@ -197,7 +211,7 @@ function render(){
             <div class="sub" style="color:#27ae60">Faltam ${formatCountdown(target, now)}</div>
         `;
 
-        container.appendChild(card);(card);
+        container.appendChild(card);
     }
 }
 
