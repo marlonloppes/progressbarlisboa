@@ -12,7 +12,7 @@
     .title-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
     .title-row h3 { margin:0; font-size:1rem; }
     .date-info { color:#27ae60; font-size:.88rem; }
-    .progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:hidden; margin-top:6px; }
+    .progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:visible; margin-top:6px; }
     .progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; }
     .progress-percent { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:.78rem; font-weight:600; color:#27ae60; text-shadow:0 1px 2px rgba(0,0,0,0.6); }
     .emoji-icon { position:absolute; top:50%; transform:translateY(-50%); font-size:20px; transition: left .5s ease, transform .25s ease; }
@@ -23,13 +23,13 @@
     #timeline { margin-top:20px; padding:14px; background:#121212; border-radius:10px; border:1px solid #2b2b2b; }
     .timeline-bar { height:12px; background:#222; border-radius:8px; position:relative; overflow:hidden; }
     .timeline-fill { position:absolute; left:0; top:0; height:100%; width:0%; background:linear-gradient(90deg,#8aff98,#4caf50); transition: width .6s linear; }
-    .tl-marker { position:absolute; top:16px; font-size:12px; color:#bdbdbd; transform:translateX(-50%); }
+    .tl-marker { position:absolute; top:-16px; font-size:12px; color:#bdbdbd; transform:translateX(-50%); white-space:nowrap; }
 </style>
 </head>
 <body>
 <div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
-<div id="timeline"><p style="margin:0 0 8px 0;color:#cfcfcf;font-weight:600">Linha do tempo da viagem completa</p><div class="timeline-bar" id="timelineBar"><div class="timeline-fill" id="timelineFill"></div></div></div>
+<div id="timeline"><p style="margin:0 0 8px 0;color:#cfcfcf;font-weight:600">Linha do tempo da viagem</p><div class="timeline-bar" id="timelineBar"><div class="timeline-fill" id="timelineFill"></div><div id="timelineStart" class="tl-marker" style="left:0%">Início — 19/12/2025</div><div id="timelineEnd" class="tl-marker" style="left:100%">Fim — 22/01/2026</div></div></div>
 <script>
 const TRIPS = [
     { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
@@ -74,7 +74,9 @@ function render(){
     document.getElementById('timelineFill').style.width = overallProgress + '%';
 
     const tlBar = document.getElementById('timelineBar');
-    Array.from(tlBar.querySelectorAll('.tl-marker')).forEach(n=>n.remove());
+    Array.from(tlBar.querySelectorAll('.tl-marker'))
+    .filter(n => !['timelineStart','timelineEnd'].includes(n.id))
+    .forEach(n => n.remove());
     TRIPS.forEach(t=>{
         const tMs = new Date(t.date).getTime();
         const pos = clamp(((tMs - start)/totalRange)*100, 0,100);
