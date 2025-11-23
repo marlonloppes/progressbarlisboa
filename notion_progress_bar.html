@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Widget Viagens – Completo</title>
 <style>
+    .country-flag{width:16px;height:12px;object-fit:cover;border-radius:2px;margin-right:4px;}
     body { font-family: Arial, sans-serif; background: #0d0d0d; color: #ffffff; padding: 25px; }
     #next-destination { background: #1f1f1f; border: 1px solid #333; padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 1.05rem; text-align: center; }
     #trips-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
@@ -29,24 +30,67 @@
 <body>
 <div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
-<div id="timeline"><p style="margin:0 0 8px 0;color:#cfcfcf;font-weight:600">Linha do tempo da viagem</p><div class="timeline-bar" id="timelineBar"><div class="timeline-fill" id="timelineFill"></div><div id="timelineStart" class="tl-marker" style="left:0%">Início — 19/12/2025</div><div id="timelineEnd" class="tl-marker" style="left:100%">Fim — 22/01/2026</div></div></div>
+<div id="timeline">
+  <p style="margin:0 0 8px 0;color:#cfcfcf;font-weight:600">Linha do tempo da viagem</p>
+  <div class="timeline-bar" id="timelineBar">
+    <div class="timeline-fill" id="timelineFill"></div>
+    <div id="timelineStart" class="tl-marker" style="left:0%">🇧🇷 Início — 19/12/2025 😊</div>
+    <div id="timelineFill" class="timeline-fill"></div>
+    <div id="timelineEnd" class="tl-marker" style="left:100%">Fim — 22/01/2026 😢 🇧🇷</div>
+    </div></div>
 <script>
+const FLAGS = {
+    'Guarulhos': 'https://flagcdn.com/w20/br.png',
+    'Lisboa': 'https://flagcdn.com/w20/pt.png',
+    'Madri': 'https://flagcdn.com/w20/es.png',
+    'Paris': 'https://flagcdn.com/w20/fr.png',
+    'Londres': 'https://flagcdn.com/w20/gb.png',
+    'Roma': 'https://flagcdn.com/w20/it.png',
+    'Civitavecchia': 'https://flagcdn.com/w20/it.png',
+    'Valência': 'https://flagcdn.com/w20/es.png',
+    'Barcelona': 'https://flagcdn.com/w20/es.png',
+    'Marselha': 'https://flagcdn.com/w20/fr.png',
+    'Gênova': 'https://flagcdn.com/w20/it.png',
+    'Livorno': 'https://flagcdn.com/w20/it.png'
+};
+
+// helpers para extrair local e origem/destino a partir do título
+function cleanLocation(raw){
+    // remove apenas emojis básicos mantendo acentos e caracteres
+    return raw
+        .replace(/[☀-➿]/g, '') // símbolos e emojis comuns
+        .replace(/[()]/g, '')
+        .replace(/–.*/g, '')
+        .trim();
+}
+function getOriginDest(title){
+    if(title.includes('→')){
+        const parts = title.split('→').map(p=>cleanLocation(p));
+        return { from: parts[0].trim(), to: parts[1].trim() };
+    }
+    const single = cleanLocation(title);
+    return { from: single, to: single };
+}
+function flagFor(loc){
+    return FLAGS[loc] ? `<img class='country-flag' src='${FLAGS[loc]}' />` : '';
+} 
+
 const TRIPS = [
-    { title: "✈️ Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
-    { title: "✈️ Lisboa → Madri", emoji: "✈️", date: "2025-12-23T18:00:00", arrival: "20:20", type: "flight" },
-    { title: "✈️ Madri → Paris", emoji: "✈️", date: "2025-12-27T14:25:00", arrival: "16:30", type: "flight" },
-    { title: "🚄 Paris → Londres", emoji: "🚄", date: "2026-01-02T16:12:00", arrival: "17:30", type: "train" },
-    { title: "✈️ Londres → Roma", emoji: "✈️", date: "2026-01-08T16:45:00", arrival: "20:20", type: "flight" },
-    { title: "🚢 Civitavecchia (embarque)", emoji: "🚢", date: "2026-01-15T11:00:00", embark: "11:00", depart: "2026-01-15T19:00:00", type: "cruise-start" },
-    { title: "⚓ Valência", emoji: "🛳️", date: "2026-01-17T07:00:00", type: "cruise-stop", depart: "2026-01-17T21:00:00" },
-    { title: "⚓ Barcelona", emoji: "🛳️", date: "2026-01-18T08:00:00", type: "cruise-stop", depart: "2026-01-18T18:00:00" },
-    { title: "⚓ Marselha", emoji: "🛳️", date: "2026-01-19T08:00:00", type: "cruise-stop", depart: "2026-01-19T18:00:00" },
-    { title: "⚓ Gênova", emoji: "🛳️", date: "2026-01-20T08:00:00", type: "cruise-stop", depart: "2026-01-20T19:00:00" },
-    { title: "⚓ Livorno", emoji: "🛳️", date: "2026-01-21T07:00:00", type: "cruise-stop", depart: "2026-01-21T20:00:00" },
-    { title: "🚢 Fim do Cruzeiro – Civitavecchia", emoji: "🚢", date: "2026-01-22T07:00:00", arrival: "07:00", type: "cruise-end" },
-    { title: "✈️ Roma → Madri", emoji: "✈️", date: "2026-01-22T14:45:00", arrival: "17:20", type: "flight" },
-    { title: "✈️ Madri → Lisboa", emoji: "✈️", date: "2026-01-22T21:10:00", arrival: "21:35", type: "flight" },
-    { title: "✈️ Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22T23:30:00", arrival: "06:50", type: "flight" }
+    { title: "Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
+    { title: "Lisboa → Madri", emoji: "✈️", date: "2025-12-23T18:00:00", arrival: "20:20", type: "flight" },
+    { title: "Madri → Paris", emoji: "✈️", date: "2025-12-27T14:25:00", arrival: "16:30", type: "flight" },
+    { title: "Paris → Londres", emoji: "🚄", date: "2026-01-02T16:12:00", arrival: "17:30", type: "train" },
+    { title: "Londres → Roma", emoji: "✈️", date: "2026-01-08T16:45:00", arrival: "20:20", type: "flight" },
+    { title: "Civitavecchia", emoji: "🚢", date: "2026-01-15T11:00:00", embark: "11:00", depart: "2026-01-15T19:00:00", type: "cruise-start" },
+    { title: "Valência", emoji: "🛳️", date: "2026-01-17T07:00:00", type: "cruise-stop", depart: "2026-01-17T21:00:00" },
+    { title: "Barcelona", emoji: "🛳️", date: "2026-01-18T08:00:00", type: "cruise-stop", depart: "2026-01-18T18:00:00" },
+    { title: "Marselha", emoji: "🛳️", date: "2026-01-19T08:00:00", type: "cruise-stop", depart: "2026-01-19T18:00:00" },
+    { title: "Gênova", emoji: "🛳️", date: "2026-01-20T08:00:00", type: "cruise-stop", depart: "2026-01-20T19:00:00" },
+    { title: "Livorno", emoji: "🛳️", date: "2026-01-21T07:00:00", type: "cruise-stop", depart: "2026-01-21T20:00:00" },
+    { title: "Civitavecchia", emoji: "🚢", date: "2026-01-22T07:00:00", arrival: "07:00", type: "cruise-end" },
+    { title: "Roma → Madri", emoji: "✈️", date: "2026-01-22T14:45:00", arrival: "17:20", type: "flight" },
+    { title: "Madri → Lisboa", emoji: "✈️", date: "2026-01-22T21:10:00", arrival: "21:35", type: "flight" },
+    { title: "Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22T23:30:00", arrival: "06:50", type: "flight" }
 ];
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, v)); }
@@ -83,7 +127,9 @@ function render(){
         const m = document.createElement('div');
         m.className = 'tl-marker';
         m.style.left = pos + '%';
-        m.textContent = t.title.split('–')[0].trim();
+        const od = getOriginDest(t.title);
+        const flag = flagFor(od.to);
+        m.innerHTML = flag + od.to;
         tlBar.appendChild(m);
     });
 
@@ -133,8 +179,12 @@ function render(){
                 extraMsg = "Viagem concluída";
         }
 
+        const odCard = getOriginDest(trip.title);
+        let originFlag = flagFor(odCard.from);
+        if(trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end") originFlag = "";
+        const destFlag = flagFor(odCard.to);
         card.innerHTML = `
-            <div class="title-row"><h3>${trip.title}</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
+            <div class="title-row"><h3>${originFlag}${trip.title} ${destFlag}</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
 
             <div class="progress-wrapper">
                 <div class="progress-fill" style="width:${progressPct}%;background:${color};"></div>
