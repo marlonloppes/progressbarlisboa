@@ -114,6 +114,23 @@ function render(){
             return `Partida prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
         })();
 
+        let extraMsg = "";
+        if(trip.type === "flight" || trip.type === "train"){
+            const departTime = new Date(trip.date);
+            const arrTime = new Date(trip.date);
+            if(trip.arrival){
+                const [ah, am] = trip.arrival.split(":");
+                arrTime.setHours(parseInt(ah), parseInt(am));
+                if(arrTime < departTime) arrTime.setDate(arrTime.getDate() + 1);
+            }
+            if(now >= departTime - 3600000 && now < departTime)
+                extraMsg = "Hora de Embarcar";
+            else if(now >= departTime + 1800000 && now < arrTime + 3600000)
+                extraMsg = "Embarque concluído. Boa viagem!";
+            else if(now >= arrTime + 3600000)
+                extraMsg = "Viagem concluída";
+        }
+
         card.innerHTML = `
             <div class="title-row"><h3>${trip.title}</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
 
@@ -124,10 +141,11 @@ function render(){
             </div>
 
             <div class="status">${status}</div>
+            ${extraMsg ? `<div class='status' style='color:#f1c40f'>${extraMsg}</div>` : ""}
             <div class="sub" style="color:#27ae60">Faltam ${formatCountdown(target, now)}</div>
         `;
 
-        container.appendChild(card);
+        container.appendChild(card);(card);
     }
 }
 
