@@ -21,6 +21,7 @@
     @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
     .status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
     .sub { color:#bdbdbd; font-size:.82rem; }
+    .scale-info { color:#bdbdbd; font-size:.9rem; margin-top:4px; display:flex; align-items:center; gap:8px; }
 
     /* Timeline (markers only - no fill bar) */
     #timeline { margin-top:20px; padding:14px; background:#121212; border-radius:10px; border:1px solid #2b2b2b; }
@@ -199,6 +200,7 @@ function render(){
                 ? `${odCard.to}${destFlag}`
                 : `${originFlag ? `<img class='country-flag' src='${originFlag}' />` : ''}${odCard.from} → ${odCard.to}${destFlag}`
             }</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
+          ${trip.scale ? `<div class=\"scale-info\">✈️ <i>${trip.scale}</i></div>` : ''}
 
             <div class="progress-wrapper">
                 <div class="progress-fill" style="width:${progressPct}%;background:${color};"></div>
