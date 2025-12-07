@@ -51,7 +51,7 @@ const TRIPS = [
     { title: "Lisboa → Madri", emoji: "✈️", date: "2025-12-23T18:00:00", arrival: "20:20", type: "flight" },
     { title: "Madri → Paris", emoji: "✈️", date: "2025-12-27T14:25:00", arrival: "16:30", type: "flight" },
     { title: "Paris → Londres", emoji: "🚄", date: "2026-01-02T16:12:00", arrival: "17:30", type: "train" },
-    { title: "Londres → Roma", emoji: "✈️", date: "2026-01-08T16:40:00", arrival: "22:40", scale: "Escala em Milão (19:30–21:30 )", type: "flight" },
+    { title: "Londres → Roma", emoji: "✈️", date: "2026-01-08T16:40:00", arrival: "22:40", scale: "Escala em Milão (19:30–21:30)", type: "flight" },
     { title: "Civitavecchia", emoji: "🚢", date: "2026-01-15T11:00:00", embark: "11:00", depart: "2026-01-15T19:00:00", type: "cruise-start" },
     { title: "Valência", emoji: "🛳️", date: "2026-01-17T07:00:00", type: "cruise-stop", depart: "2026-01-17T21:00:00" },
     { title: "Barcelona", emoji: "🛳️", date: "2026-01-18T08:00:00", type: "cruise-stop", depart: "2026-01-18T18:00:00" },
@@ -64,15 +64,7 @@ const TRIPS = [
     { title: "Lisboa → Guarulhos", emoji: "✈️", date: "2026-01-22T23:30:00", arrival: "06:50", type: "flight" }
 ];
 
-const MS_IN_SECOND = 1000;
-const MS_IN_MINUTE = 60 * MS_IN_SECOND;
-const MS_IN_HOUR = 60 * MS_IN_MINUTE; // 3600000
-const MS_IN_DAY = 24 * MS_IN_HOUR; // 86400000
-const MS_IN_WEEK = 7 * MS_IN_DAY; // 604800000
-const MS_IN_HALF_HOUR = 30 * MS_IN_MINUTE; // 1800000
-const MS_IN_HOUR_AND_HALF = MS_IN_HOUR + MS_IN_HALF_HOUR; // 5400000
-
-const MAX_WINDOW_MS = 30 * MS_IN_DAY;
+const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 function cleanLocation(raw){
     return raw
@@ -121,7 +113,7 @@ function getOriginDest(title){
 }
 function flagForUrl(loc){ return FLAGS[loc] || null; }
 function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, v)); }
-function getColorForTimeLeft(msLeft){ if(msLeft <= MS_IN_HOUR) return "#27ae60"; if(msLeft <= MS_IN_DAY) return "#f1c40f"; if(msLeft <= MS_IN_WEEK) return "#e67e22"; return "#4b6b82"; }
+function getColorForTimeLeft(msLeft){ if(msLeft <= 3600000) return "#27ae60"; if(msLeft <= 86400000) return "#f1c40f"; if(msLeft <= 604800000) return "#e67e22"; return "#4b6b82"; }
 function formatCountdown(target, now){ const diff = target - now; if(diff <= 0) return "0 dias 0h 0m 0s";
     const s = Math.floor(diff/1000);
     const dias = Math.floor(s / 86400);
@@ -167,7 +159,7 @@ function createTripCard(trip) {
         </div>
 
         <div class="status" data-dynamic="status"></div>
-        <div class="status extra-msg" data-dynamic="extra-msg" style="color:#f1c40f; opacity:0;">&nbsp;</div>
+        <div class="status extra-msg" data-dynamic="extra-msg" style="color:#f1c40f; display:none;"></div>
         <div class="sub countdown" data-dynamic="countdown" style="color:#27ae60"></div>
     `;
 
@@ -177,7 +169,7 @@ function createTripCard(trip) {
 /**
  * Atualiza os elementos dinâmicos de um cartão de viagem.
  */
-function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
+function updateTripCard(cardElement, trip, now) {
     const target = new Date(trip.date);
     const msLeft = target - now;
 
@@ -224,31 +216,31 @@ function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
             if (T2_arrive < T1_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
 
             // 1. Antes do primeiro trecho (Londres -> Milão)
-            if (now < T1_depart - MS_IN_HOUR) {{
+            if (now < T1_depart - 3600000) {
                 // Status padrão (contagem regressiva)
             }
             // 2. Hora de embarcar (Londres)
-            else if (now >= T1_depart - MS_IN_HOUR && now < T1_depart) {
+            else if (now >= T1_depart - 3600000 && now < T1_depart) {
                 extraMsg = "Hora de Embarcar";
             }
             // 3. Primeiro trecho em voo (Londres -> Milão)
-            else if (now >= T1_depart + MS_IN_HALF_HOUR && now < T1_arrive + MS_IN_HOUR) {
+            else if (now >= T1_depart + 1800000 && now < T1_arrive + 3600000) {
                 extraMsg = "Embarque concluído. Boa viagem!";
             }
             // 4. Primeiro trecho concluído (Chegada em Milão)
-            else if (now >= T1_arrive + MS_IN_HOUR && now < T2_depart - MS_IN_HOUR) {
+            else if (now >= T1_arrive + 3600000 && now < T2_depart - 3600000) {
                 extraMsg = "Primeiro trecho concluído";
             }
             // 5. Hora de embarcar novamente (Milão)
-            else if (now >= T2_depart - MS_IN_HOUR && now < T2_depart) {
+            else if (now >= T2_depart - 3600000 && now < T2_depart) {
                 extraMsg = "Hora de embarcar novamente";
             }
             // 6. Segundo trecho em voo (Milão -> Roma)
-            else if (now >= T2_depart + MS_IN_HALF_HOUR && now < T2_arrive + MS_IN_HOUR) {
+            else if (now >= T2_depart + 1800000 && now < T2_arrive + 3600000) {
                 extraMsg = "Embarque concluído. Boa viagem!";
             }
             // 7. Viagem concluída (Chegada em Roma)
-            else if (now >= T2_arrive + MS_IN_HOUR) {
+            else if (now >= T2_arrive + 3600000) {
                 extraMsg = "Viagem concluída";
             }
             
@@ -259,11 +251,11 @@ function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
                 arrTime.setHours(parseInt(ah), parseInt(am));
                 if(arrTime < departTime) arrTime.setDate(arrTime.getDate() + 1);
             }
-            if (now >= departTime - MS_IN_HOUR && now < departTime)
+            if(now >= departTime - 3600000 && now < departTime)
                 extraMsg = "Hora de Embarcar";
-            else if (now >= departTime + MS_IN_HALF_HOUR && now < arrTime + MS_IN_HOUR)
+            else if(now >= departTime + 1800000 && now < arrTime + 3600000)
                 extraMsg = "Embarque concluído. Boa viagem!";
-        else if (now >= arrTime + MS_IN_HOUR)
+        else if(now >= arrTime + 3600000)
             extraMsg = "Viagem concluída";
     }
     
@@ -273,16 +265,19 @@ function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
         
         if (trip.type === "cruise-start") {
             const departTime = new Date(trip.depart);
-            const time1030 = createDateFromTime(target, "10:30");
-            const time1200 = createDateFromTime(target, "12:00");
-            const time1800 = createDateFromTime(target, "18:00");
-            const time1900 = createDateFromTime(target, "19:00");
-
-            if (now >= time1030 && now < time1200) {
+            const embarkTime = createDateFromTime(target, trip.embark);
+            const prepareTime = new Date(target);
+            prepareTime.setHours(10, 30, 0, 0); // 10:30
+            const enjoyTime = new Date(target);
+            enjoyTime.setHours(12, 0, 0, 0); // 12:00
+            const soonTime = new Date(target);
+            soonTime.setHours(18, 0, 0, 0); // 18:00
+            
+            if (now >= prepareTime && now < enjoyTime) {
                 extraMsg = "Prepare-se para embarcar";
-            } else if (now >= time1200 && now < time1800) {
+            } else if (now >= enjoyTime && now < soonTime) {
                 extraMsg = "Embarque concluído, aproveite o navio!";
-            } else if (now >= time1800 && now < departTime) {
+            } else if (now >= soonTime && now < departTime) {
                 extraMsg = "O navio vai partir em breve";
             } else if (now >= departTime) {
                 extraMsg = "Embarque concluído, boa viagem";
@@ -292,8 +287,8 @@ function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
         else if (trip.type === "cruise-stop") {
             const departTime = new Date(trip.depart);
             const arriveTime = target;
-            const hourBeforeDepart = new Date(departTime.getTime() - MS_IN_HOUR); // 1 hora antes
-            const halfHourAfterDepart = new Date(departTime.getTime() + MS_IN_HALF_HOUR); // 30 minutos depois
+            const hourBeforeDepart = new Date(departTime.getTime() - 3600000); // 1 hora antes
+            const halfHourAfterDepart = new Date(departTime.getTime() + 1800000); // 30 minutos depois
             
             const odCard = getOriginDest(trip.title);
             const city = odCard.to;
@@ -305,16 +300,14 @@ function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
             } else if (now >= departTime && now < halfHourAfterDepart) {
                 extraMsg = "Embarque concluído, boa viagem";
             } else if (now >= halfHourAfterDepart) {
-                // O status "Viagem concluída" para paradas de cruzeiro
-            } else if (isPreviousCruiseStop) {
                 extraMsg = "Viagem concluída";
             }
         }
         
         else if (trip.type === "cruise-end") {
             const arriveTime = target;
-            const hourAfterArrive = new Date(arriveTime.getTime() + MS_IN_HOUR); // 1 hora depois
-            const halfHourAfterArrive = new Date(arriveTime.getTime() + MS_IN_HOUR_AND_HALF); // 1 hora e 30 minutos depois
+            const hourAfterArrive = new Date(arriveTime.getTime() + 3600000); // 1 hora depois
+            const halfHourAfterArrive = new Date(arriveTime.getTime() + 5400000); // 1 hora e 30 minutos depois
             
             if (now >= arriveTime && now < hourAfterArrive) {
                 // Status padrão (Chegada prevista)
@@ -338,10 +331,9 @@ function updateTripCard(cardElement, trip, now, isPreviousCruiseStop = false) {
     const extraMsgEl = cardElement.querySelector('[data-dynamic="extra-msg"]');
     if (extraMsg) {
         extraMsgEl.textContent = extraMsg;
-        extraMsgEl.style.opacity = '1';
+        extraMsgEl.style.display = 'block';
     } else {
-        extraMsgEl.textContent = '\u00A0'; // Non-breaking space to reserve height
-        extraMsgEl.style.opacity = '0';
+        extraMsgEl.style.display = 'none';
     }
 }
 
@@ -377,7 +369,7 @@ function init() {
             }
         }
         
-        const vacationOverTime = new Date(lastTripArr.getTime() + MS_IN_HOUR); // 1 hora após a chegada
+        const vacationOverTime = new Date(lastTripArr.getTime() + 3600000); // 1 hora após a chegada
 
         if (now >= vacationOverTime) {
             nextDestinationEl.textContent = "Viagem de férias concluída!";
@@ -423,26 +415,9 @@ function init() {
                 : 'Próximo destino: nenhuma viagem futura';
         }
 
-        // Lógica para marcar paradas de cruzeiro anteriores como concluídas
-        let currentCruiseStopIndex = -1;
-        for (let i = 0; i < TRIPS.length; i++) {
-            const trip = TRIPS[i];
-            if (trip.type === "cruise-stop") {
-                if (new Date(trip.date) > now) {
-                    currentCruiseStopIndex = i;
-                    break;
-                }
-            }
-        }
-
         // Atualiza todos os cartões
         document.querySelectorAll('.trip-card').forEach((card, index) => {
-            const trip = TRIPS[index];
-            let isPreviousCruiseStop = false;
-            if (trip.type === "cruise-stop" && index < currentCruiseStopIndex) {
-                isPreviousCruiseStop = true;
-            }
-            updateTripCard(card, trip, now, isPreviousCruiseStop);
+            updateTripCard(card, TRIPS[index], now);
         });
     }
 
@@ -456,3 +431,4 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
+
