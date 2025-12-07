@@ -196,8 +196,6 @@ function updateTripCard(cardElement, trip, now) {
     })();
 
     let extraMsg = "";
-    
-    // Lógica de status para Voos e Trens (incluindo escala)
     if(trip.type === "flight" || trip.type === "train"){
         const departTime = new Date(trip.date);
         const arrTime = new Date(trip.date);
@@ -255,69 +253,9 @@ function updateTripCard(cardElement, trip, now) {
                 extraMsg = "Hora de Embarcar";
             else if(now >= departTime + 1800000 && now < arrTime + 3600000)
                 extraMsg = "Embarque concluído. Boa viagem!";
-        else if(now >= arrTime + 3600000)
-            extraMsg = "Viagem concluída";
-    }
-    
-    // Lógica de status para Cruzeiros
-    else if (trip.type.startsWith("cruise")) {
-        const target = new Date(trip.date);
-        
-        if (trip.type === "cruise-start") {
-            const departTime = new Date(trip.depart);
-            const embarkTime = createDateFromTime(target, trip.embark);
-            const prepareTime = new Date(target);
-            prepareTime.setHours(10, 30, 0, 0); // 10:30
-            const enjoyTime = new Date(target);
-            enjoyTime.setHours(12, 0, 0, 0); // 12:00
-            const soonTime = new Date(target);
-            soonTime.setHours(18, 0, 0, 0); // 18:00
-            
-            if (now >= prepareTime && now < enjoyTime) {
-                extraMsg = "Prepare-se para embarcar";
-            } else if (now >= enjoyTime && now < soonTime) {
-                extraMsg = "Embarque concluído, aproveite o navio!";
-            } else if (now >= soonTime && now < departTime) {
-                extraMsg = "O navio vai partir em breve";
-            } else if (now >= departTime) {
-                extraMsg = "Embarque concluído, boa viagem";
-            }
-        }
-        
-        else if (trip.type === "cruise-stop") {
-            const departTime = new Date(trip.depart);
-            const arriveTime = target;
-            const hourBeforeDepart = new Date(departTime.getTime() - 3600000); // 1 hora antes
-            const halfHourAfterDepart = new Date(departTime.getTime() + 1800000); // 30 minutos depois
-            
-            const odCard = getOriginDest(trip.title);
-            const city = odCard.to;
-            
-            if (now >= arriveTime && now < hourBeforeDepart) {
-                extraMsg = `Seja bem-vindo à ${city}, aproveite o passeio`;
-            } else if (now >= hourBeforeDepart && now < departTime) {
-                extraMsg = "Hora de embarcar";
-            } else if (now >= departTime && now < halfHourAfterDepart) {
-                extraMsg = "Embarque concluído, boa viagem";
-            } else if (now >= halfHourAfterDepart) {
+            else if(now >= arrTime + 3600000)
                 extraMsg = "Viagem concluída";
-            }
         }
-        
-        else if (trip.type === "cruise-end") {
-            const arriveTime = target;
-            const hourAfterArrive = new Date(arriveTime.getTime() + 3600000); // 1 hora depois
-            const halfHourAfterArrive = new Date(arriveTime.getTime() + 5400000); // 1 hora e 30 minutos depois
-            
-            if (now >= arriveTime && now < hourAfterArrive) {
-                // Status padrão (Chegada prevista)
-            } else if (now >= hourAfterArrive && now < halfHourAfterArrive) {
-                extraMsg = "Hora de desembarcar";
-            } else if (now >= halfHourAfterArrive) {
-                extraMsg = "Viagem concluída";
-            }
-        }
-    }
     }
 
     // 3. Atualização do DOM (Otimizada)
@@ -354,66 +292,46 @@ function init() {
     function updateAllCards() {
         const now = new Date();
 
-        // Lógica para determinar o próximo destino ou a mensagem final
-        const lastTrip = TRIPS[TRIPS.length - 1];
-        const lastTripDepart = new Date(lastTrip.date);
-        const lastTripArr = new Date(lastTrip.date);
-
-        // Calcula a hora de chegada final do último voo (Lisboa -> Guarulhos)
-        if (lastTrip.arrival) {
-            const [ah, am] = lastTrip.arrival.split(":").map(Number);
-            lastTripArr.setHours(ah, am, 0, 0);
-            // Lógica para voo noturno que chega no dia seguinte
-            if (lastTripArr < lastTripDepart) {
-                lastTripArr.setDate(lastTripArr.getDate() + 1);
-            }
-        }
+        // Atualiza o próximo destino
+        const future = TRIPS.filter(t=>new Date(t.date) > now).sort((a,b)=>new Date(a.date)-new Date(b.date));
         
-        const vacationOverTime = new Date(lastTripArr.getTime() + 3600000); // 1 hora após a chegada
+        let nextTripTitle = future.length ? future[0].title : null;
+        let nextTripDate = future.length ? new Date(future[0].date) : null;
 
-        if (now >= vacationOverTime) {
-            nextDestinationEl.textContent = "Viagem de férias concluída!";
-        } else {
-            const future = TRIPS.filter(t=>new Date(t.date) > now).sort((a,b)=>new Date(a.date)-new Date(b.date));
-            
-            let nextTripTitle = future.length ? future[0].title : null;
-            let nextTripDate = future.length ? new Date(future[0].date) : null;
+        // Lógica especial para a viagem com escala (Londres -> Roma)
+        const scaleTrip = TRIPS.find(t => t.scale && new Date(t.date) < now && new Date(t.date).getDate() === now.getDate());
+        if (scaleTrip) {
+            const scaleInfo = parseScaleTimes(scaleTrip);
+            if (scaleInfo) {
+                const T1_depart = new Date(scaleTrip.date);
+                const T1_arrive = createDateFromTime(T1_depart, scaleInfo.arrive1);
+                const T2_depart = createDateFromTime(T1_depart, scaleInfo.depart2);
+                const T2_arrive = createDateFromTime(T1_depart, scaleTrip.arrival); // Usa o arrival final
 
-            // Lógica especial para a viagem com escala (Londres -> Roma)
-            const scaleTrip = TRIPS.find(t => t.scale && new Date(t.date) < now && new Date(t.date).getDate() === now.getDate());
-            if (scaleTrip) {
-                const scaleInfo = parseScaleTimes(scaleTrip);
-                if (scaleInfo) {
-                    const T1_depart = new Date(scaleTrip.date);
-                    const T1_arrive = createDateFromTime(T1_depart, scaleInfo.arrive1);
-                    const T2_depart = createDateFromTime(T1_depart, scaleInfo.depart2);
-                    const T2_arrive = createDateFromTime(T1_depart, scaleTrip.arrival); // Usa o arrival final
+                // Ajusta as datas se for voo noturno (embora improvável para a escala)
+                if (T1_arrive < T1_depart) T1_arrive.setDate(T1_arrive.getDate() + 1);
+                if (T2_depart < T1_depart) T2_depart.setDate(T2_depart.getDate() + 1);
+                if (T2_arrive < T1_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
 
-                    // Ajusta as datas se for voo noturno (embora improvável para a escala)
-                    if (T1_arrive < T1_depart) T1_arrive.setDate(T1_arrive.getDate() + 1);
-                    if (T2_depart < T1_depart) T2_depart.setDate(T2_depart.getDate() + 1);
-                    if (T2_arrive < T1_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
+                const od1 = getOriginDest(scaleTrip.title);
+                const od2 = { from: scaleInfo.location, to: od1.to };
 
-                    const od1 = getOriginDest(scaleTrip.title);
-                    const od2 = { from: scaleInfo.location, to: od1.to };
-
-                    // Verifica se o primeiro trecho já passou
-                    if (now < T1_arrive) {
-                        // Primeiro trecho (Londres -> Milão) é o próximo
-                        nextTripTitle = `${od1.from} → ${scaleInfo.location}`;
-                        nextTripDate = T1_depart;
-                    } else if (now < T2_arrive) {
-                        // Segundo trecho (Milão -> Roma) é o próximo
-                        nextTripTitle = `${scaleInfo.location} → ${od2.to}`;
-                        nextTripDate = T2_depart;
-                    }
+                // Verifica se o primeiro trecho já passou
+                if (now < T1_arrive) {
+                    // Primeiro trecho (Londres -> Milão) é o próximo
+                    nextTripTitle = `${od1.from} → ${scaleInfo.location}`;
+                    nextTripDate = T1_depart;
+                } else if (now < T2_arrive) {
+                    // Segundo trecho (Milão -> Roma) é o próximo
+                    nextTripTitle = `${scaleInfo.location} → ${od2.to}`;
+                    nextTripDate = T2_depart;
                 }
             }
-
-            nextDestinationEl.textContent = nextTripTitle
-                ? `Próximo destino: ${nextTripTitle} — ${nextTripDate.toLocaleString('pt-BR')}`
-                : 'Próximo destino: nenhuma viagem futura';
         }
+
+        nextDestinationEl.textContent = nextTripTitle
+            ? `Próximo destino: ${nextTripTitle} — ${nextTripDate.toLocaleString('pt-BR')}`
+            : 'Próximo destino: nenhuma viagem futura';
 
         // Atualiza todos os cartões
         document.querySelectorAll('.trip-card').forEach((card, index) => {
@@ -431,4 +349,3 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
-
