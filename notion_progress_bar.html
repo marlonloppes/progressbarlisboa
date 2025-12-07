@@ -22,25 +22,12 @@
     .status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
     .sub { color:#bdbdbd; font-size:.82rem; }
     .scale-info { color:#bdbdbd; font-size:.9rem; margin-top:4px; display:flex; align-items:center; gap:8px; }
-
-    /* Timeline (markers only - no fill bar) */
-    #timeline { margin-top:20px; padding:14px; background:#121212; border-radius:10px; border:1px solid #2b2b2b; }
-    .timeline-bar { height:14px; background:transparent; border-radius:8px; position:relative; overflow:visible; }
-    .tl-marker { position:absolute; top:0; font-size:13px; color:#bdbdbd; transform:translateX(-50%); white-space:nowrap; display:flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
 
 <div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
-
-<!-- timeline bar placeholder (necessário para o script) -->
-<div id="timelineBar" style="display:none"></div>
-
-
-    
-  </div>
-</div>
 
 <script>
 const FLAGS = {
@@ -50,6 +37,7 @@ const FLAGS = {
     'Paris': 'https://flagcdn.com/w20/fr.png',
     'Londres': 'https://flagcdn.com/w20/gb.png',
     'Roma': 'https://flagcdn.com/w20/it.png',
+    'Milão': 'https://flagcdn.com/w20/it.png',
     'Civitavecchia': 'https://flagcdn.com/w20/it.png',
     'Valência': 'https://flagcdn.com/w20/es.png',
     'Barcelona': 'https://flagcdn.com/w20/es.png',
@@ -57,23 +45,6 @@ const FLAGS = {
     'Gênova': 'https://flagcdn.com/w20/it.png',
     'Livorno': 'https://flagcdn.com/w20/it.png'
 };
-
-function cleanLocation(raw){
-    return raw
-        .replace(/[☀-➿]/g, '')
-        .replace(/[()]/g, '')
-        .replace(/–.*/g, '')
-        .trim();
-}
-function getOriginDest(title){
-    if(title.includes('→')){
-        const parts = title.split('→').map(p=>cleanLocation(p));
-        return { from: parts[0].trim(), to: parts[1].trim() };
-    }
-    const single = cleanLocation(title);
-    return { from: single, to: single };
-}
-function flagForUrl(loc){ return FLAGS[loc] || null; }
 
 const TRIPS = [
     { title: "Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
@@ -94,6 +65,53 @@ const TRIPS = [
 ];
 
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+function cleanLocation(raw){
+    return raw
+        .replace(/[☀-➿]/g, '')
+        .replace(/[()]/g, '')
+        .replace(/–.*/g, '')
+        .trim();
+}
+
+
+/**
+ * Extrai os horários de chegada e partida da escala.
+ * @param {object} trip - O objeto da viagem.
+ * @returns {{arrive1: string, depart2: string, location: string}|null}
+ */
+function parseScaleTimes(trip) {
+    if (!trip.scale) return null;
+    const match = trip.scale.match(/Escala em (.+?) \((.+?)–(.+?)\)/);
+    if (!match) return null;
+    return {
+        location: match[1],
+        arrive1: match[2],
+        depart2: match[3]
+    };
+}
+
+/**
+ * Cria um objeto Date completo a partir de uma data base e uma string de hora (HH:MM).
+ * @param {Date} baseDate - A data base (geralmente a data de partida).
+ * @param {string} timeStr - A string de hora (HH:MM).
+ * @returns {Date}
+ */
+function createDateFromTime(baseDate, timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const newDate = new Date(baseDate);
+    newDate.setHours(h, m, 0, 0);
+    return newDate;
+}
+function getOriginDest(title){
+    if(title.includes('→')){
+        const parts = title.split('→').map(p=>cleanLocation(p));
+        return { from: parts[0].trim(), to: parts[1].trim() };
+    }
+    const single = cleanLocation(title);
+    return { from: single, to: single };
+}
+function flagForUrl(loc){ return FLAGS[loc] || null; }
 function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, v)); }
 function getColorForTimeLeft(msLeft){ if(msLeft <= 3600000) return "#27ae60"; if(msLeft <= 86400000) return "#f1c40f"; if(msLeft <= 604800000) return "#e67e22"; return "#4b6b82"; }
 function formatCountdown(target, now){ const diff = target - now; if(diff <= 0) return "0 dias 0h 0m 0s";
@@ -105,75 +123,127 @@ function formatCountdown(target, now){ const diff = target - now; if(diff <= 0) 
     return `${dias} dias ${h}h ${m}m ${sec}s`;
 }
 
-function render(){
-    const now = new Date();
-    const container = document.getElementById('trips-container');
-    container.innerHTML = '';
+/**
+ * Cria o elemento HTML estático do cartão de viagem.
+ * Os elementos dinâmicos recebem classes para fácil acesso.
+ */
+function createTripCard(trip) {
+    const odCard = getOriginDest(trip.title);
+    let originFlagUrl = flagForUrl(odCard.from);
+    if(trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end") originFlagUrl = null;
+    const destFlagUrl = flagForUrl(odCard.to);
+    const destFlag = destFlagUrl ? `<img class='country-flag' src='${destFlagUrl}' />` : '';
+    const originFlag = originFlagUrl ? `<img class='country-flag' src='${originFlagUrl}' />` : '';
 
-    const future = TRIPS.filter(t=>new Date(t.date) > now).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    document.getElementById('next-destination').textContent = future.length ? `Próximo destino: ${future[0].title} — ${new Date(future[0].date).toLocaleString('pt-BR')}` : 'Próximo destino: nenhuma viagem futura';
+    const card = document.createElement('div');
+    card.className = 'trip-card';
 
-    const start = new Date(TRIPS[0].date).getTime();
-    const end = new Date(TRIPS[TRIPS.length-1].date).getTime() + 7200000;
-    const totalRange = end - start;
-    // timelineFill foi removido conforme pedido
+    // Título e data
+    const titleHtml = (trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end")
+        ? `${odCard.to}${destFlag}`
+        : `${originFlag}${odCard.from} → ${odCard.to}${destFlag}`;
 
-    const tlBar = document.getElementById('timelineBar');
-    Array.from(tlBar.querySelectorAll('.tl-marker'))
-    .filter(n => !['timelineStart','timelineEnd'].includes(n.id))
-    .forEach(n => n.remove());
-    TRIPS.forEach(t=>{
-        const tMs = new Date(t.date).getTime();
-        const pos = clamp(((tMs - start)/totalRange)*100, 0,100);
-        const m = document.createElement('div');
-        m.className = 'tl-marker';
-        m.style.left = pos + '%';
-        const od = getOriginDest(t.title);
-        const flag = flagForUrl(od.to);
-        if(flag){
-            const img = document.createElement('img');
-            img.src = flag;
-            img.className = 'country-flag';
-            img.style.marginLeft = '6px';
-            m.appendChild(img);
-        }
-        m.appendChild(document.createTextNode(od.to));
-        tlBar.appendChild(m);
-    });
+    const targetDate = new Date(trip.date).toLocaleDateString('pt-BR');
 
-    for(const trip of TRIPS){
-        const target = new Date(trip.date);
-        const depart = trip.depart ? new Date(trip.depart) : null;
-        const msLeft = target - now;
+    card.innerHTML = `
+        <div class="title-row">
+            <h3>${titleHtml}</h3>
+            <div class="sub">${targetDate}</div>
+        </div>
+        ${trip.scale ? `<div class="scale-info">✈️ <i>${trip.scale}</i></div>` : ''}
 
-        let progressPct = 0;
-        const windowStart = target.getTime() - MAX_WINDOW_MS;
-        progressPct = clamp(((now.getTime() - windowStart) / MAX_WINDOW_MS) * 100, 0, 100);
-        if(msLeft <= 0) progressPct = 100;
-        else progressPct = clamp(((MAX_WINDOW_MS - msLeft) / MAX_WINDOW_MS) * 100, 0, 100);
+        <div class="progress-wrapper">
+            <div class="progress-fill" data-dynamic="fill"></div>
+            <div class="emoji-icon" data-dynamic="emoji">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
+            <div class="progress-percent" data-dynamic="percent">0%</div>
+        </div>
 
-        const card = document.createElement('div');
-        card.className = 'trip-card';
+        <div class="status" data-dynamic="status"></div>
+        <div class="status extra-msg" data-dynamic="extra-msg" style="color:#f1c40f; display:none;"></div>
+        <div class="sub countdown" data-dynamic="countdown" style="color:#27ae60"></div>
+    `;
 
-        const color = getColorForTimeLeft(msLeft > MAX_WINDOW_MS ? MAX_WINDOW_MS : msLeft);
-        const emojiLeft = `calc(${progressPct}% - 10px)`;
+    return card;
+}
 
-        let status = (()=>{
-            if(trip.type === "cruise-start")
-                return `Embarque previsto: ${trip.embark} — Partida: ${new Date(trip.depart).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
-            if(trip.type === "cruise-end")
-                return `Chegada prevista: ${trip.arrival}`;
-            if(trip.type === "cruise-stop")
-                return `Chegada prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — Partida prevista: ${new Date(trip.depart).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
-            if(trip.arrival)
-                return `Partida prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — Chegada prevista: ${trip.arrival}`;
-            return `Partida prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
-        })();
+/**
+ * Atualiza os elementos dinâmicos de um cartão de viagem.
+ */
+function updateTripCard(cardElement, trip, now) {
+    const target = new Date(trip.date);
+    const msLeft = target - now;
 
-        let extraMsg = "";
-        if(trip.type === "flight" || trip.type === "train"){
-            const departTime = new Date(trip.date);
-            const arrTime = new Date(trip.date);
+    // 1. Cálculo do Progresso
+    let progressPct = 0;
+    const windowStart = target.getTime() - MAX_WINDOW_MS;
+    if(msLeft <= 0) progressPct = 100;
+    else progressPct = clamp(((MAX_WINDOW_MS - msLeft) / MAX_WINDOW_MS) * 100, 0, 100);
+
+    const color = getColorForTimeLeft(msLeft > MAX_WINDOW_MS ? MAX_WINDOW_MS : msLeft);
+    const emojiLeft = `calc(${progressPct}% - 10px)`;
+
+    // 2. Cálculo do Status
+    let status = (()=>{
+        if(trip.type === "cruise-start")
+            return `Embarque previsto: ${trip.embark} — Partida: ${new Date(trip.depart).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+        if(trip.type === "cruise-end")
+            return `Chegada prevista: ${trip.arrival}`;
+        if(trip.type === "cruise-stop")
+            return `Chegada prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — Partida prevista: ${new Date(trip.depart).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+        if(trip.arrival)
+            return `Partida prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — Chegada prevista: ${trip.arrival}`;
+        return `Partida prevista: ${target.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    })();
+
+    let extraMsg = "";
+    if(trip.type === "flight" || trip.type === "train"){
+        const departTime = new Date(trip.date);
+        const arrTime = new Date(trip.date);
+        
+        // Lógica de escala
+        const scaleInfo = parseScaleTimes(trip);
+        if (scaleInfo) {
+            const T1_depart = new Date(trip.date);
+            const T1_arrive = createDateFromTime(T1_depart, scaleInfo.arrive1);
+            const T2_depart = createDateFromTime(T1_depart, scaleInfo.depart2);
+            const T2_arrive = createDateFromTime(T1_depart, trip.arrival);
+
+            // Ajusta as datas para o dia seguinte se a hora for menor que a de partida (voo noturno)
+            if (T1_arrive < T1_depart) T1_arrive.setDate(T1_arrive.getDate() + 1);
+            if (T2_depart < T1_depart) T2_depart.setDate(T2_depart.getDate() + 1);
+            if (T2_arrive < T1_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
+
+            // 1. Antes do primeiro trecho (Londres -> Milão)
+            if (now < T1_depart - 3600000) {
+                // Status padrão (contagem regressiva)
+            }
+            // 2. Hora de embarcar (Londres)
+            else if (now >= T1_depart - 3600000 && now < T1_depart) {
+                extraMsg = "Hora de Embarcar";
+            }
+            // 3. Primeiro trecho em voo (Londres -> Milão)
+            else if (now >= T1_depart + 1800000 && now < T1_arrive + 3600000) {
+                extraMsg = "Embarque concluído. Boa viagem!";
+            }
+            // 4. Primeiro trecho concluído (Chegada em Milão)
+            else if (now >= T1_arrive + 3600000 && now < T2_depart - 3600000) {
+                extraMsg = "Primeiro trecho concluído";
+            }
+            // 5. Hora de embarcar novamente (Milão)
+            else if (now >= T2_depart - 3600000 && now < T2_depart) {
+                extraMsg = "Hora de embarcar novamente";
+            }
+            // 6. Segundo trecho em voo (Milão -> Roma)
+            else if (now >= T2_depart + 1800000 && now < T2_arrive + 3600000) {
+                extraMsg = "Embarque concluído. Boa viagem!";
+            }
+            // 7. Viagem concluída (Chegada em Roma)
+            else if (now >= T2_arrive + 3600000) {
+                extraMsg = "Viagem concluída";
+            }
+            
+        } else {
+            // Lógica para voos sem escala (original)
             if(trip.arrival){
                 const [ah, am] = trip.arrival.split(":");
                 arrTime.setHours(parseInt(ah), parseInt(am));
@@ -186,39 +256,96 @@ function render(){
             else if(now >= arrTime + 3600000)
                 extraMsg = "Viagem concluída";
         }
+    }
 
-        const odCard = getOriginDest(trip.title);
-        let originFlag = flagForUrl(odCard.from);
-        if(trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end") originFlag = null;
-        const destFlagUrl = flagForUrl(odCard.to);
-        const destFlag = destFlagUrl ? `<img class='country-flag' src='${destFlagUrl}' />` : '';
+    // 3. Atualização do DOM (Otimizada)
+    cardElement.querySelector('[data-dynamic="fill"]').style.width = `${progressPct}%`;
+    cardElement.querySelector('[data-dynamic="fill"]').style.background = color;
+    cardElement.querySelector('[data-dynamic="emoji"]').style.left = emojiLeft;
+    cardElement.querySelector('[data-dynamic="percent"]').textContent = `${Math.round(progressPct)}%`;
+    cardElement.querySelector('[data-dynamic="status"]').textContent = status;
+    cardElement.querySelector('[data-dynamic="countdown"]').textContent = `Faltam ${formatCountdown(target, now)}`;
 
-        // título com bandeiras (origem antes, destino depois)
-        card.innerHTML = `
-            <div class="title-row"><h3>${
-                (trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end")
-                ? `${odCard.to}${destFlag}`
-                : `${originFlag ? `<img class='country-flag' src='${originFlag}' />` : ''}${odCard.from} → ${odCard.to}${destFlag}`
-            }</h3><div class="sub">${target.toLocaleDateString('pt-BR')}</div></div>
-          ${trip.scale ? `<div class=\"scale-info\">✈️ <i>${trip.scale}</i></div>` : ''}
-
-            <div class="progress-wrapper">
-                <div class="progress-fill" style="width:${progressPct}%;background:${color};"></div>
-                <div class="emoji-icon" style="left:${emojiLeft}">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
-                <div class="progress-percent">${Math.round(progressPct)}%</div>
-            </div>
-
-            <div class="status">${status}</div>
-            ${extraMsg ? `<div class='status' style='color:#f1c40f'>${extraMsg}</div>` : ""}
-            <div class="sub" style="color:#27ae60">Faltam ${formatCountdown(target, now)}</div>
-        `;
-
-        container.appendChild(card);
+    const extraMsgEl = cardElement.querySelector('[data-dynamic="extra-msg"]');
+    if (extraMsg) {
+        extraMsgEl.textContent = extraMsg;
+        extraMsgEl.style.display = 'block';
+    } else {
+        extraMsgEl.style.display = 'none';
     }
 }
 
-setInterval(render, 1000);
-render();
+/**
+ * Função principal de inicialização e atualização.
+ */
+function init() {
+    const container = document.getElementById('trips-container');
+    const nextDestinationEl = document.getElementById('next-destination');
+
+    // 1. Criação inicial dos cartões (executado apenas uma vez)
+    TRIPS.forEach(trip => {
+        const card = createTripCard(trip);
+        container.appendChild(card);
+    });
+
+    // 2. Função de atualização que será chamada a cada segundo
+    function updateAllCards() {
+        const now = new Date();
+
+        // Atualiza o próximo destino
+        const future = TRIPS.filter(t=>new Date(t.date) > now).sort((a,b)=>new Date(a.date)-new Date(b.date));
+        
+        let nextTripTitle = future.length ? future[0].title : null;
+        let nextTripDate = future.length ? new Date(future[0].date) : null;
+
+        // Lógica especial para a viagem com escala (Londres -> Roma)
+        const scaleTrip = TRIPS.find(t => t.scale && new Date(t.date) < now && new Date(t.date).getDate() === now.getDate());
+        if (scaleTrip) {
+            const scaleInfo = parseScaleTimes(scaleTrip);
+            if (scaleInfo) {
+                const T1_depart = new Date(scaleTrip.date);
+                const T1_arrive = createDateFromTime(T1_depart, scaleInfo.arrive1);
+                const T2_depart = createDateFromTime(T1_depart, scaleInfo.depart2);
+                const T2_arrive = createDateFromTime(T1_depart, scaleTrip.arrival); // Usa o arrival final
+
+                // Ajusta as datas se for voo noturno (embora improvável para a escala)
+                if (T1_arrive < T1_depart) T1_arrive.setDate(T1_arrive.getDate() + 1);
+                if (T2_depart < T1_depart) T2_depart.setDate(T2_depart.getDate() + 1);
+                if (T2_arrive < T1_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
+
+                const od1 = getOriginDest(scaleTrip.title);
+                const od2 = { from: scaleInfo.location, to: od1.to };
+
+                // Verifica se o primeiro trecho já passou
+                if (now < T1_arrive) {
+                    // Primeiro trecho (Londres -> Milão) é o próximo
+                    nextTripTitle = `${od1.from} → ${scaleInfo.location}`;
+                    nextTripDate = T1_depart;
+                } else if (now < T2_arrive) {
+                    // Segundo trecho (Milão -> Roma) é o próximo
+                    nextTripTitle = `${scaleInfo.location} → ${od2.to}`;
+                    nextTripDate = T2_depart;
+                }
+            }
+        }
+
+        nextDestinationEl.textContent = nextTripTitle
+            ? `Próximo destino: ${nextTripTitle} — ${nextTripDate.toLocaleString('pt-BR')}`
+            : 'Próximo destino: nenhuma viagem futura';
+
+        // Atualiza todos os cartões
+        document.querySelectorAll('.trip-card').forEach((card, index) => {
+            updateTripCard(card, TRIPS[index], now);
+        });
+    }
+
+    // Primeira execução e início do intervalo
+    updateAllCards();
+    setInterval(updateAllCards, 1000);
+}
+
+// Inicia o widget após o carregamento completo do DOM
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
