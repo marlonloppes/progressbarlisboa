@@ -14,8 +14,8 @@
     .title-row h3 { margin:0; font-size:1rem; display:flex; align-items:center; gap:6px; }
     .date-info { color:#27ae60; font-size:.88rem; }
 .progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:hidden; margin-top:6px; }
-	.progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; }
-	.progress-percent { position:relative; font-size:.78rem; font-weight:600; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.6); margin-left:auto; }
+	.progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; }
+	.progress-percent { position:absolute; right:8px; top:50%; transform: translateY(-50%); font-size:.78rem; font-weight:600; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.6); z-index: 10; }
 	.extra-msg-overlay { position:absolute; left:0; right:0; text-align:center; font-size:.78rem; font-weight:600; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.6); }
     .emoji-icon { position:absolute; top:50%; transform:translateY(-50%); font-size:20px; transition: left .5s ease, transform .25s ease; }
     .emoji-jump { animation: jump .6s infinite alternate; }
@@ -163,9 +163,9 @@ function createTripCard(trip) {
 
 <div class="progress-wrapper">
 	            <div class="progress-fill" data-dynamic="fill">
-	                <div class="progress-percent" data-dynamic="percent">0%</div>
 	                <div class="extra-msg-overlay" data-dynamic="extra-msg"></div>
 	            </div>
+	            <div class="progress-percent" data-dynamic="percent">0%</div>
 	            <div class="emoji-icon" data-dynamic="emoji">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
 	        </div>
 
@@ -328,4 +328,141 @@ function updateTripCard(cardElement, trip, now) {
             // A maneira mais simples de fazer isso é garantir que o cartão da parada anterior
             // não seja mais exibido se a parada atual já tiver chegado.
             // Como o TRIPS é fixo, vamos apenas 
-(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
+        }
+        
+        else if (trip.type === "cruise-end") {
+            const arriveTime = target;
+            const hourAfterArrive = new Date(arriveTime.getTime() + 3600000); // 1 hora depois
+            
+            if (now < arriveTime) {
+                // Status padrão (contagem regressiva)
+            } else if (now >= arriveTime && now < hourAfterArrive) {
+                extraMsg = "Chegada ao destino final";
+            } else if (now >= hourAfterArrive) {
+                extraMsg = "Viagem concluída";
+            }
+        }
+    }
+    
+    // 3. Atualização dos Elementos
+    const fillElement = cardElement.querySelector('[data-dynamic="fill"]');
+    const percentElement = cardElement.querySelector('[data-dynamic="percent"]');
+    const extraMsgElement = cardElement.querySelector('[data-dynamic="extra-msg"]');
+    const emojiElement = cardElement.querySelector('[data-dynamic="emoji"]');
+    const statusElement = cardElement.querySelector('[data-dynamic="status"]');
+    const countdownElement = cardElement.querySelector('[data-dynamic="countdown"]');
+
+    fillElement.style.width = `${progressPct}%`;
+    fillElement.style.backgroundColor = color;
+    percentElement.textContent = `${Math.round(progressPct)}%`;
+    statusElement.textContent = status;
+    
+    if(extraMsg){
+        extraMsgElement.textContent = extraMsg;
+        extraMsgElement.style.display = 'block';
+        percentElement.style.display = 'none';
+    } else {
+        extraMsgElement.textContent = '';
+        extraMsgElement.style.display = 'none';
+        // Oculta a porcentagem se o progresso for 100%
+        percentElement.style.display = (progressPct >= 100) ? 'none' : 'block';
+    }
+
+    // Posição e animação do emoji
+    emojiElement.style.left = emojiLeft;
+    if(progressPct > 0 && progressPct < 100){
+        emojiElement.classList.add('emoji-jump');
+    } else {
+        emojiElement.classList.remove('emoji-jump');
+    }
+
+    // Contagem regressiva
+    if(msLeft > 0){
+        countdownElement.textContent = formatCountdown(target.getTime(), now.getTime());
+        countdownElement.style.color = color;
+    } else {
+        countdownElement.textContent = "Viagem Concluída!";
+        countdownElement.style.color = "#27AE60";
+    }
+}
+
+/**
+ * Encontra a próxima viagem e atualiza o elemento #next-destination.
+ */
+function findNextTrip(now) {
+    let nextTrip = null;
+    let minMsLeft = Infinity;
+
+    for (const trip of TRIPS) {
+        const target = new Date(trip.date);
+        const msLeft = target - now;
+
+        if (msLeft > 0 && msLeft < minMsLeft) {
+            minMsLeft = msLeft;
+            nextTrip = trip;
+        }
+    }
+
+    const nextDestinationElement = document.getElementById('next-destination');
+    if (nextTrip) {
+        const odCard = getOriginDest(nextTrip.title);
+        const targetDate = new Date(nextTrip.date);
+        const dateStr = targetDate.toLocaleDateString('pt-BR');
+        const timeStr = targetDate.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        
+        let tripTitle;
+        if (nextTrip.type === "cruise-stop" || nextTrip.type === "cruise-start" || nextTrip.type === "cruise-end") {
+            tripTitle = odCard.to;
+        } else {
+            tripTitle = `${odCard.from} → ${odCard.to}`;
+        }
+        
+        nextDestinationElement.innerHTML = `Próximo destino: <b>${tripTitle}</b> — ${dateStr}, ${timeStr}`;
+    } else {
+        nextDestinationElement.textContent = "Todas as viagens foram concluídas!";
+    }
+}
+
+/**
+ * Renderiza todos os cartões de viagem.
+ */
+function renderTrips() {
+    const container = document.getElementById('trips-container');
+    container.innerHTML = '';
+    TRIPS.forEach(trip => {
+        const card = createTripCard(trip);
+        card.dataset.tripIndex = TRIPS.indexOf(trip);
+        container.appendChild(card);
+    });
+}
+
+/**
+ * Atualiza o estado de todos os cartões de viagem.
+ */
+function updateAllCards() {
+    const now = new Date();
+    const cardElements = document.querySelectorAll('.trip-card');
+    
+    cardElements.forEach(cardElement => {
+        const index = parseInt(cardElement.dataset.tripIndex);
+        const trip = TRIPS[index];
+        updateTripCard(cardElement, trip, now);
+    });
+    
+    findNextTrip(now);
+}
+
+/**
+ * Inicializa o widget.
+ */
+function init() {
+    renderTrips();
+    updateAllCards(); // Primeira atualização imediata
+    setInterval(updateAllCards, 1000); // Atualiza a cada segundo
+}
+
+// Inicia o widget quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
