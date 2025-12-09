@@ -13,15 +13,15 @@
     .title-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
     .title-row h3 { margin:0; font-size:1rem; display:flex; align-items:center; gap:6px; }
     .date-info { color:#27ae60; font-size:.88rem; }
-    .progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:visible; margin-top:6px; }
-    .progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; }
-    .progress-percent { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:.78rem; font-weight:600; color:#27ae60; text-shadow:0 1px 2px rgba(0,0,0,0.6); }
+.progress-wrapper { position:relative; height:26px; background:#222; border-radius:20px; overflow:hidden; margin-top:6px; }
+	.progress-fill { position:absolute; left:0; top:0; height:100%; width:0%; transition: width .6s linear, background .3s linear; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; }
+	.progress-percent { position:relative; font-size:.78rem; font-weight:600; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.6); margin-left:auto; }
+	.extra-msg-overlay { position:absolute; left:0; right:0; text-align:center; font-size:.78rem; font-weight:600; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.6); }
     .emoji-icon { position:absolute; top:50%; transform:translateY(-50%); font-size:20px; transition: left .5s ease, transform .25s ease; }
     .emoji-jump { animation: jump .6s infinite alternate; }
     @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
-    .status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
-    .sub { color:#bdbdbd; font-size:.82rem; }
-    .scale-info { color:#bdbdbd; font-size:.9rem; margin-top:4px; display:flex; align-items:center; gap:8px; }
+.status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
+	.sub { color:#bdbdbd; font-size:.82rem; }e-info { color:#bdbdbd; font-size:.9rem; margin-top:4px; display:flex; align-items:center; gap:8px; }
 </style>
 </head>
 <body>
@@ -113,7 +113,16 @@ function getOriginDest(title){
 }
 function flagForUrl(loc){ return FLAGS[loc] || null; }
 function clamp(v, a=0, b=100){ return Math.max(a, Math.min(b, v)); }
-function getColorForTimeLeft(msLeft){ if(msLeft <= 3600000) return "#27ae60"; if(msLeft <= 86400000) return "#f1c40f"; if(msLeft <= 604800000) return "#e67e22"; return "#4b6b82"; }
+function getColorForTimeLeft(msLeft){
+    const DAY_MS = 86400000;
+    const daysLeft = msLeft / DAY_MS;
+
+    if(msLeft <= 0) return "#27AE60"; // Concluído
+    if(daysLeft <= 9) return "#33FF33"; // 0 a 9 dias (Verde Limão)
+    if(daysLeft <= 20) return "#A8E61D"; // 10 a 20 dias (Verde Pistache)
+    if(daysLeft <= 30) return "#E74C3C"; // 21 a 30 dias (Vermelho)
+    return "#4b6b82"; // Mais de 30 dias (Azul/Cinza Padrão)
+}
 function formatCountdown(target, now){ const diff = target - now; if(diff <= 0) return "0 dias 0h 0m 0s";
     const s = Math.floor(diff/1000);
     const dias = Math.floor(s / 86400);
@@ -152,15 +161,16 @@ function createTripCard(trip) {
         </div>
         ${trip.scale ? `<div class="scale-info">✈️ <i>${trip.scale}</i></div>` : ''}
 
-        <div class="progress-wrapper">
-            <div class="progress-fill" data-dynamic="fill"></div>
-            <div class="emoji-icon" data-dynamic="emoji">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
-            <div class="progress-percent" data-dynamic="percent">0%</div>
-        </div>
+<div class="progress-wrapper">
+	            <div class="progress-fill" data-dynamic="fill">
+	                <div class="progress-percent" data-dynamic="percent">0%</div>
+	                <div class="extra-msg-overlay" data-dynamic="extra-msg"></div>
+	            </div>
+	            <div class="emoji-icon" data-dynamic="emoji">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
+	        </div>
 
-        <div class="status" data-dynamic="status"></div>
-        <div class="status extra-msg" data-dynamic="extra-msg" style="color:#f1c40f; display:none;"></div>
-        <div class="sub countdown" data-dynamic="countdown" style="color:#27ae60"></div>
+	        <div class="status" data-dynamic="status"></div>
+	        <div class="sub countdown" data-dynamic="countdown" style="color:#27ae60"></div>
     `;
 
     return card;
@@ -196,6 +206,14 @@ function updateTripCard(cardElement, trip, now) {
     })();
 
     let extraMsg = "";
+	const DAY_MS = 86400000;
+	const daysLeft = msLeft / DAY_MS;
+
+	if (daysLeft <= 7 && daysLeft > 0) {
+	    extraMsg = "A sua viagem está chegando!";
+	}
+    
+    // Lógica de status para Voos e Trens (incluindo escala)
     if(trip.type === "flight" || trip.type === "train"){
         const departTime = new Date(trip.date);
         const arrTime = new Date(trip.date);
@@ -245,107 +263,69 @@ function updateTripCard(cardElement, trip, now) {
         } else {
             // Lógica para voos sem escala (original)
             if(trip.arrival){
-                const [ah, am] = trip.arrival.split(":");
-                arrTime.setHours(parseInt(ah), parseInt(am));
+                const [ah, am] = trip.arrival.split(":").map(Number);
+                arrTime.setHours(ah, am);
                 if(arrTime < departTime) arrTime.setDate(arrTime.getDate() + 1);
             }
             if(now >= departTime - 3600000 && now < departTime)
                 extraMsg = "Hora de Embarcar";
             else if(now >= departTime + 1800000 && now < arrTime + 3600000)
                 extraMsg = "Embarque concluído. Boa viagem!";
-            else if(now >= arrTime + 3600000)
-                extraMsg = "Viagem concluída";
-        }
-    }
-
-    // 3. Atualização do DOM (Otimizada)
-    cardElement.querySelector('[data-dynamic="fill"]').style.width = `${progressPct}%`;
-    cardElement.querySelector('[data-dynamic="fill"]').style.background = color;
-    cardElement.querySelector('[data-dynamic="emoji"]').style.left = emojiLeft;
-    cardElement.querySelector('[data-dynamic="percent"]').textContent = `${Math.round(progressPct)}%`;
-    cardElement.querySelector('[data-dynamic="status"]').textContent = status;
-    cardElement.querySelector('[data-dynamic="countdown"]').textContent = `Faltam ${formatCountdown(target, now)}`;
-
-    const extraMsgEl = cardElement.querySelector('[data-dynamic="extra-msg"]');
-    if (extraMsg) {
-        extraMsgEl.textContent = extraMsg;
-        extraMsgEl.style.display = 'block';
-    } else {
-        extraMsgEl.style.display = 'none';
-    }
-}
-
-/**
- * Função principal de inicialização e atualização.
- */
-function init() {
-    const container = document.getElementById('trips-container');
-    const nextDestinationEl = document.getElementById('next-destination');
-
-    // 1. Criação inicial dos cartões (executado apenas uma vez)
-    TRIPS.forEach(trip => {
-        const card = createTripCard(trip);
-        container.appendChild(card);
-    });
-
-    // 2. Função de atualização que será chamada a cada segundo
-    function updateAllCards() {
-        const now = new Date();
-
-        // Atualiza o próximo destino
-        const future = TRIPS.filter(t=>new Date(t.date) > now).sort((a,b)=>new Date(a.date)-new Date(b.date));
+        else if(now >= arrTime + 3600000)
+            extraMsg = "Viagem concluída";
+        } // Fecha o 'else' do 'if (scaleInfo)'
+    } // Fecha o 'if(trip.type === "flight" || trip.type === "train")'
+    
+    // Lógica de status para Cruzeiros
+    else if (trip.type.startsWith("cruise")) {
+        const target = new Date(trip.date);
         
-        let nextTripTitle = future.length ? future[0].title : null;
-        let nextTripDate = future.length ? new Date(future[0].date) : null;
-
-        // Lógica especial para a viagem com escala (Londres -> Roma)
-        const scaleTrip = TRIPS.find(t => t.scale && new Date(t.date) < now && new Date(t.date).getDate() === now.getDate());
-        if (scaleTrip) {
-            const scaleInfo = parseScaleTimes(scaleTrip);
-            if (scaleInfo) {
-                const T1_depart = new Date(scaleTrip.date);
-                const T1_arrive = createDateFromTime(T1_depart, scaleInfo.arrive1);
-                const T2_depart = createDateFromTime(T1_depart, scaleInfo.depart2);
-                const T2_arrive = createDateFromTime(T1_depart, scaleTrip.arrival); // Usa o arrival final
-
-                // Ajusta as datas se for voo noturno (embora improvável para a escala)
-                if (T1_arrive < T1_depart) T1_arrive.setDate(T1_arrive.getDate() + 1);
-                if (T2_depart < T1_depart) T2_depart.setDate(T2_depart.getDate() + 1);
-                if (T2_arrive < T1_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
-
-                const od1 = getOriginDest(scaleTrip.title);
-                const od2 = { from: scaleInfo.location, to: od1.to };
-
-                // Verifica se o primeiro trecho já passou
-                if (now < T1_arrive) {
-                    // Primeiro trecho (Londres -> Milão) é o próximo
-                    nextTripTitle = `${od1.from} → ${scaleInfo.location}`;
-                    nextTripDate = T1_depart;
-                } else if (now < T2_arrive) {
-                    // Segundo trecho (Milão -> Roma) é o próximo
-                    nextTripTitle = `${scaleInfo.location} → ${od2.to}`;
-                    nextTripDate = T2_depart;
-                }
+        if (trip.type === "cruise-start") {
+            const departTime = new Date(trip.depart);
+            const embarkTime = createDateFromTime(target, trip.embark);
+            const prepareTime = new Date(target);
+            prepareTime.setHours(10, 30, 0, 0); // 10:30
+            const enjoyTime = new Date(target);
+            enjoyTime.setHours(12, 0, 0, 0); // 12:00
+            const soonTime = new Date(target);
+            soonTime.setHours(18, 0, 0, 0); // 18:00
+            
+            if (now >= prepareTime && now < enjoyTime) {
+                extraMsg = "Prepare-se para embarcar";
+            } else if (now >= enjoyTime && now < soonTime) {
+                extraMsg = "Embarque concluído, aproveite o navio!";
+            } else if (now >= soonTime && now < departTime) {
+                extraMsg = "O navio vai partir em breve";
+            } else if (now >= departTime) {
+                extraMsg = "Embarque concluído, boa viagem";
             }
         }
-
-        nextDestinationEl.textContent = nextTripTitle
-            ? `Próximo destino: ${nextTripTitle} — ${nextTripDate.toLocaleString('pt-BR')}`
-            : 'Próximo destino: nenhuma viagem futura';
-
-        // Atualiza todos os cartões
-        document.querySelectorAll('.trip-card').forEach((card, index) => {
-            updateTripCard(card, TRIPS[index], now);
-        });
-    }
-
-    // Primeira execução e início do intervalo
-    updateAllCards();
-    setInterval(updateAllCards, 1000);
-}
-
-// Inicia o widget após o carregamento completo do DOM
-document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
-</html>
+        
+        else if (trip.type === "cruise-stop") {
+            const departTime = new Date(trip.depart);
+            const arriveTime = target;
+            const hourBeforeDepart = new Date(departTime.getTime() - 3600000); // 1 hora antes
+            const halfHourAfterDepart = new Date(departTime.getTime() + 1800000); // 30 minutos depois
+            
+            const odCard = getOriginDest(trip.title);
+            const city = odCard.to;
+            
+            if (now >= arriveTime && now < hourBeforeDepart) {
+                extraMsg = `Seja bem-vindo à ${city}, aproveite o passeio`;
+            } else if (now >= hourBeforeDepart && now < departTime) {
+                extraMsg = "Hora de embarcar";
+            } else if (now >= departTime && now < halfHourAfterDepart) {
+                extraMsg = "Embarque concluído, boa viagem";
+            } else if (now >= halfHourAfterDepart) {
+                extraMsg = "Viagem concluída";
+            }
+            
+            // Lógica para marcar paradas anteriores como "Viagem concluída"
+            // Isso requer que o status de "Viagem concluída" seja persistente, o que não é o caso
+            // do extraMsg. Para simular, vamos alterar o status principal (status)
+            // se a viagem já tiver terminado.
+            // No entanto, a lógica de status principal já é estática.
+            // A maneira mais simples de fazer isso é garantir que o cartão da parada anterior
+            // não seja mais exibido se a parada atual já tiver chegado.
+            // Como o TRIPS é fixo, vamos apenas 
+(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
