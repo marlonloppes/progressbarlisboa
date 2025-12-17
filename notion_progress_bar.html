@@ -22,10 +22,43 @@
     @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
 .status { color:#e6e6e6; font-weight:600; font-size:.9rem; }
 	.sub { color:#bdbdbd; font-size:.82rem; }e-info { color:#bdbdbd; font-size:.9rem; margin-top:4px; display:flex; align-items:center; gap:8px; }
+/* === BARRA SUPERIOR (SOL + DATA + CLIMA) === */
+#sun-bar{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  background:#1a1a1a;
+  border:1px solid #333;
+  border-radius:10px;
+  padding:10px 16px;
+  margin-bottom:16px;
+  font-size:.9rem;
+}
+#sunrise{text-align:left;color:#f1c40f}
+#sunset{text-align:right;color:#e67e22}
+#now-center{
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  gap:4px
+}
+#temperature{
+  font-size:.85rem;
+  color:#bdbdbd
+}
 </style>
 </head>
 <body>
 
+<div id="sun-bar">
+  <div id="sunrise">🌅 --:--</div>
+  <div id="now-center">
+    <div id="datetime">Carregando...</div>
+    <div id="temperature">⏳ clima local</div>
+  </div>
+  <div id="sunset">🌇 --:--</div>
+</div>
+	
 <div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
 
@@ -463,6 +496,55 @@ function init() {
 
 // Inicia o widget quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', init);
+
+<script>
+/* === DATA E HORA EM TEMPO REAL === */
+function updateClock(){
+  const now=new Date();
+  const dias=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  document.getElementById('datetime').textContent=
+    `${dias[now.getDay()]} | ${now.toLocaleDateString()} | ${now.toLocaleTimeString()}`;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+/* === CLIMA + NASCER / PÔR DO SOL === */
+function weatherIcon(code){
+  if(code===0) return '☀️';
+  if(code<=3) return '🌤️';
+  if(code>=45 && code<=48) return '🌫️';
+  if(code>=51 && code<=67) return '🌧️';
+  if(code>=71 && code<=77) return '❄️';
+  if(code>=95) return '⛈️';
+  return '🌡️';
+}
+
+navigator.geolocation.getCurrentPosition(async pos=>{
+  const lat=pos.coords.latitude;
+  const lon=pos.coords.longitude;
+
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`;
+  const res=await fetch(url);
+  const data=await res.json();
+
+  const icon=weatherIcon(data.current.weather_code);
+  const temp=Math.round(data.current.temperature_2m);
+  const max=Math.round(data.daily.temperature_2m_max[0]);
+  const min=Math.round(data.daily.temperature_2m_min[0]);
+
+  document.getElementById('temperature').textContent=
+    `${icon} ${temp}°C | Máx ${max}°C • Mín ${min}°C`;
+
+  document.getElementById('sunrise').textContent=
+    `🌅 Nascer do sol: ${new Date(data.daily.sunrise[0]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+
+  document.getElementById('sunset').textContent=
+    `🌇 Pôr do sol: ${new Date(data.daily.sunset[0]).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+},()=>{
+  document.getElementById('temperature').textContent='⚠️ localização negada';
+});
+</script>
+
 </script>
 </body>
 </html>
