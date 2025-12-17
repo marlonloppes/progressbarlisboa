@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens – Completo com Clima (v2)</title>
+<title>Widget Viagens – Completo com Clima (v4 - Ultra Compacto)</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -14,28 +14,28 @@
         padding: 25px; 
     }
 
-    /* ==================== WIDGET DE CLIMA E HORÁRIO ==================== */
+    /* ==================== WIDGET DE CLIMA E HORÁRIO (ULTRA COMPACTO) ==================== */
     #weather-widget {
         background: linear-gradient(135deg, #1f1f1f 0%, #262626 100%);
         border: 1px solid #333;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+        border-radius: 10px; /* Levemente menor */
+        padding: 8px 12px; /* Reduzido de 12px */
+        margin-bottom: 15px; /* Reduzido de 20px */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     }
 
     .weather-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 20px;
+        gap: 10px;
     }
 
     .weather-left, .weather-right {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 6px; /* Reduzido */
     }
 
     .weather-left {
@@ -49,8 +49,8 @@
     .sunrise-info, .sunset-info {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 1rem;
+        gap: 4px; /* Reduzido */
+        font-size: 0.8rem; /* Reduzido */
     }
 
     .sunrise-time {
@@ -69,39 +69,23 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 2px; /* Reduzido de 4px */
     }
 
-    /* Novo estilo para a linha de localização e clima */
-    .location-weather-line {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #e6e6e6;
-        flex-wrap: wrap; /* Para garantir que não quebre em telas pequenas */
-    }
-
-    #location-display {
-        font-weight: normal;
-        color: #bdbdbd;
-    }
-
+    /* Linha de Data e Hora */
     .date-time {
-        font-size: 0.95rem;
+        font-size: 0.85rem; /* Reduzido */
         color: #bdbdbd;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 2px; /* Reduzido */
     }
 
     .date-line {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px; /* Reduzido */
         justify-content: center;
     }
 
@@ -112,16 +96,47 @@
     .time-display {
         font-weight: 600;
         color: #27ae60;
-        font-size: 1.1rem;
+        font-size: 0.9rem; /* Reduzido */
         font-family: 'Courier New', monospace;
     }
 
+    /* Linha de Localização e Clima */
+    .location-weather-line {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #e6e6e6;
+        flex-wrap: wrap;
+        margin-top: 4px; /* Espaçamento mínimo */
+    }
+
+    #location-display {
+        font-weight: normal;
+        color: #bdbdbd;
+        font-size: 0.9rem; /* Reduzido */
+    }
+
     .weather-icon {
-        font-size: 1.8rem;
+        font-size: 1.2rem; /* Reduzido */
+    }
+
+    #temp-current-full {
+        font-size: 1.1rem; /* Reduzido */
+        font-weight: bold;
+        color: #ffffff;
+    }
+
+    .weather-description {
+        font-size: 0.9rem;
+        font-weight: normal;
+        color: #bdbdbd;
     }
 
     .temp-min-max {
-        font-size: 0.9rem;
+        font-size: 0.8rem; /* Reduzido */
         font-weight: normal;
         color: #bdbdbd;
     }
@@ -339,6 +354,7 @@
                 <span id="location-display">Carregando Localização...</span>
                 <span class="weather-icon" id="weather-icon">☀️</span>
                 <span id="temp-current-full">--°C</span>
+                <span class="weather-description" id="weather-description">---</span>
                 <span class="temp-min-max">
                     (Max: <span id="temp-max">--°C</span> Min: <span id="temp-min">--°C</span>)
                 </span>
@@ -476,19 +492,19 @@ async function getWeatherData(latitude, longitude) {
 }
 
 /**
- * Converte código de clima WMO para ícone apropriado
+ * Converte código de clima WMO para ícone e descrição apropriada
  */
-function getWeatherIcon(weatherCode) {
+function getWeatherInfo(weatherCode) {
     // WMO Weather interpretation codes (simplificado)
-    if (weatherCode <= 1) return "☀️"; // Clear sky
-    if (weatherCode <= 3) return "⛅"; // Partly cloudy
-    if (weatherCode <= 48) return "🌫️"; // Foggy
-    if (weatherCode <= 67) return "🌧️"; // Drizzle/Rain
-    if (weatherCode <= 77) return "❄️"; // Snow
-    if (weatherCode <= 82) return "🌧️"; // Rain showers
-    if (weatherCode <= 86) return "❄️"; // Snow showers
-    if (weatherCode <= 99) return "⛈️"; // Thunderstorm
-    return "☀️"; // Default
+    if (weatherCode <= 1) return { icon: "☀️", description: "Ensolarado" }; // Clear sky
+    if (weatherCode <= 3) return { icon: "⛅", description: "Parcialmente Nublado" }; // Partly cloudy
+    if (weatherCode <= 48) return { icon: "🌫️", description: "Neblina" }; // Foggy
+    if (weatherCode <= 67) return { icon: "🌧️", description: "Chuva" }; // Drizzle/Rain
+    if (weatherCode <= 77) return { icon: "❄️", description: "Neve" }; // Snow
+    if (weatherCode <= 82) return { icon: "🌧️", description: "Chuva Forte" }; // Rain showers
+    if (weatherCode <= 86) return { icon: "❄️", description: "Neve Forte" }; // Snow showers
+    if (weatherCode <= 99) return { icon: "⛈️", description: "Tempestade" }; // Thunderstorm
+    return { icon: "☀️", description: "Desconhecido" }; // Default
 }
 
 /**
@@ -515,6 +531,8 @@ async function updateWeatherWidget() {
         return;
     }
 
+    const weatherInfo = getWeatherInfo(weatherData.weather_code);
+
     // Atualizar elementos de clima e horário
     document.getElementById('sunrise-time').textContent = formatTime(weatherData.sunrise);
     document.getElementById('sunset-time').textContent = formatTime(weatherData.sunset);
@@ -522,7 +540,8 @@ async function updateWeatherWidget() {
     document.getElementById('temp-current-full').textContent = `${weatherData.current_temp}°C`;
     document.getElementById('temp-max').textContent = `${weatherData.max_temp}°C`;
     document.getElementById('temp-min').textContent = `${weatherData.min_temp}°C`;
-    document.getElementById('weather-icon').textContent = getWeatherIcon(weatherData.weather_code);
+    document.getElementById('weather-icon').textContent = weatherInfo.icon;
+    document.getElementById('weather-description').textContent = weatherInfo.description;
 }
 
 /**
