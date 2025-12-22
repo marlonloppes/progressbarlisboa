@@ -3,207 +3,166 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens – Clima + Fuso Horário Automático</title>
+<title>Widget Viagens – Original + Local Atual</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#0d0d0d;color:#fff;padding:25px}
+body{
+    margin:0;
+    padding:20px;
+    font-family:Arial,sans-serif;
+    background:#0d0d0d;
+    color:#fff;
+}
 
-#weather-widget{
-    background:linear-gradient(135deg,#1f1f1f,#262626);
-    border:1px solid #333;
+.widget{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;
+}
+
+.card{
+    background:#1f1f1f;
+    border:1px solid #2e2e2e;
     border-radius:10px;
     padding:12px;
-    margin-bottom:15px;
-}
-
-.weather-container{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-}
-
-.weather-left,.weather-right{
-    flex:1;
-    font-size:.8rem;
-    color:#bbb;
-}
-
-.weather-center{
-    flex:2;
     text-align:center;
+    box-shadow:0 4px 8px rgba(0,0,0,.3);
 }
 
-#line1{
+.card h3{
     font-size:.85rem;
-    color:#bdbdbd;
+    margin-bottom:6px;
+    color:#aaa;
 }
 
-#line2{
-    font-size:.95rem;
+.card p{
+    font-size:1rem;
     font-weight:bold;
-    margin-top:4px;
 }
 
-#sunrise-time{color:#FFB347}
-#sunset-time{color:#FF6B6B}
+.flag{
+    width:24px;
+    height:16px;
+    object-fit:cover;
+    border-radius:3px;
+    margin-bottom:6px;
+}
 </style>
 </head>
 
 <body>
 
-<div id="weather-widget">
-  <div class="weather-container">
-    <div class="weather-left">🌅 <span id="sunrise-time">--:--</span></div>
-    <div class="weather-center">
-      <div id="line1">Carregando localização...</div>
-      <div id="line2">Carregando clima...</div>
-    </div>
-    <div class="weather-right"><span id="sunset-time">--:--</span> 🌇</div>
+<div class="widget">
+
+  <!-- LOCAL ATUAL -->
+  <div class="card">
+    <h3 id="local-name">Local atual</h3>
+    <p id="local-time">--:--</p>
   </div>
+
+  <div class="card">
+    <img class="flag" src="https://flagcdn.com/w20/br.png">
+    <h3>Brasil</h3>
+    <p id="br">--:--</p>
+  </div>
+
+  <div class="card">
+    <img class="flag" src="https://flagcdn.com/w20/pt.png">
+    <h3>Portugal</h3>
+    <p id="pt">--:--</p>
+  </div>
+
+  <div class="card">
+    <img class="flag" src="https://flagcdn.com/w20/es.png">
+    <h3>Espanha</h3>
+    <p id="es">--:--</p>
+  </div>
+
+  <div class="card">
+    <img class="flag" src="https://flagcdn.com/w20/fr.png">
+    <h3>França</h3>
+    <p id="fr">--:--</p>
+  </div>
+
+  <div class="card">
+    <img class="flag" src="https://flagcdn.com/w20/gb.png">
+    <h3>Reino Unido</h3>
+    <p id="uk">--:--</p>
+  </div>
+
+  <div class="card">
+    <img class="flag" src="https://flagcdn.com/w20/it.png">
+    <h3>Itália</h3>
+    <p id="it">--:--</p>
+  </div>
+
 </div>
 
 <script>
-// ===================== ESTADO GLOBAL =====================
-let currentCoords = null;
-let currentLocation = "Localizando...";
-let currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-// ===================== GEOLOCALIZAÇÃO TEMPO REAL =====================
-function startGeolocationTracking() {
-    if (!navigator.geolocation) {
-        currentLocation = "Geolocalização indisponível";
-        return;
-    }
+// ================== GEOLOCALIZAÇÃO EM TEMPO REAL ==================
+if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(async pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
 
-    navigator.geolocation.watchPosition(
-        async (pos) => {
-            currentCoords = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude
-            };
-
-            currentLocation = await getCityName(
-                currentCoords.latitude,
-                currentCoords.longitude
+        // Nome da cidade
+        try{
+            const geo = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`
             );
+            const data = await geo.json();
+            const a = data.address || {};
+            document.getElementById("local-name").textContent =
+              a.city || a.town || a.village || "Local atual";
+        }catch{}
 
-            await updateWeatherAndTimezone();
-        },
-        (err) => {
-            console.warn("Erro geolocalização:", err);
-            currentCoords = { latitude: -23.5505, longitude: -46.6333 };
-        },
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 10000
-        }
-    );
+        // Timezone real pela posição
+        try{
+            const tz = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`
+            );
+            const tzData = await tz.json();
+            localTimezone = tzData.timezone;
+        }catch{}
+    });
 }
 
-// ===================== REVERSE GEOCODING =====================
-async function getCityName(lat, lon) {
-    try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const a = data.address || {};
-        return `${a.city || a.town || a.village || a.county || "Local"}, ${a.country || ""}`;
-    } catch {
-        return "Local desconhecido";
-    }
-}
-
-// ===================== CLIMA + TIMEZONE =====================
-async function getWeather(lat, lon) {
-    const today = new Date().toISOString().split("T")[0];
-    const url = `
-https://api.open-meteo.com/v1/forecast
-?latitude=${lat}
-&longitude=${lon}
-&current=temperature_2m,weather_code
-&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset
-&timezone=auto
-&start_date=${today}
-&end_date=${today}`.replace(/\s+/g,'');
-
-    const res = await fetch(url);
-    return res.json();
-}
-
-function weatherInfo(code) {
-    if (code <= 1) return "☀️ Ensolarado";
-    if (code <= 3) return "⛅ Parcialmente nublado";
-    if (code <= 48) return "🌫️ Neblina";
-    if (code <= 67) return "🌧️ Chuva";
-    if (code <= 82) return "🌧️ Chuva forte";
-    if (code <= 99) return "⛈️ Tempestade";
-    return "☀️";
-}
-
-// ===================== ATUALIZAÇÕES =====================
-async function updateWeatherAndTimezone() {
-    if (!currentCoords) return;
-
-    const data = await getWeather(
-        currentCoords.latitude,
-        currentCoords.longitude
-    );
-
-    currentTimezone = data.timezone;
-
-    document.getElementById("line2").textContent =
-        `${weatherInfo(data.current.weather_code)} 
-         ${Math.round(data.current.temperature_2m)}°C 
-         (Max ${Math.round(data.daily.temperature_2m_max[0])}° / 
-          Min ${Math.round(data.daily.temperature_2m_min[0])}°)`;
-
-    document.getElementById("sunrise-time").textContent =
-        formatTime(data.daily.sunrise[0]);
-
-    document.getElementById("sunset-time").textContent =
-        formatTime(data.daily.sunset[0]);
-}
-
-function formatTime(dateStr) {
-    return new Intl.DateTimeFormat("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: currentTimezone
-    }).format(new Date(dateStr));
-}
-
-function updateDateTime() {
+// ================== RELÓGIOS ==================
+function updateClocks(){
     const now = new Date();
 
-    const formatter = new Intl.DateTimeFormat("pt-BR", {
-        weekday: "short",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZone: currentTimezone
-    });
+    const zones = {
+        br: "America/Sao_Paulo",
+        pt: "Europe/Lisbon",
+        es: "Europe/Madrid",
+        fr: "Europe/Paris",
+        uk: "Europe/London",
+        it: "Europe/Rome"
+    };
 
-    const formatted = formatter.format(now)
-        .replace(",", " |");
+    for(const id in zones){
+        document.getElementById(id).textContent =
+            new Intl.DateTimeFormat("pt-BR",{
+                hour:"2-digit",
+                minute:"2-digit",
+                second:"2-digit",
+                timeZone:zones[id]
+            }).format(now);
+    }
 
-    document.getElementById("line1").textContent =
-        `${formatted} | ${currentLocation}`;
+    document.getElementById("local-time").textContent =
+        new Intl.DateTimeFormat("pt-BR",{
+            hour:"2-digit",
+            minute:"2-digit",
+            second:"2-digit",
+            timeZone:localTimezone
+        }).format(now);
 }
 
-// ===================== INIT =====================
-function init() {
-    startGeolocationTracking();
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-}
-
-document.addEventListener("DOMContentLoaded", init);
+updateClocks();
+setInterval(updateClocks,1000);
 </script>
 
 </body>
