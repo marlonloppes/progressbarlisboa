@@ -3,401 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens – Completo com Clima (v5 - Ultra Compacto)</title>
+<title>Widget Viagens & Clima Real-Time</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    body { 
-        font-family: Arial, sans-serif; 
-        background: #0d0d0d; 
-        color: #ffffff; 
-        padding: 25px; 
-    }
+    body { font-family: Arial, sans-serif; background: #0d0d0d; color: #ffffff; padding: 25px; }
 
-    /* ==================== WIDGET DE CLIMA E HORÁRIO (ULTRA COMPACTO) ==================== */
+    /* WIDGET DE CLIMA */
     #weather-widget {
         background: linear-gradient(135deg, #1f1f1f 0%, #262626 100%);
         border: 1px solid #333;
-        border-radius: 10px; /* Levemente menor */
-        padding: 8px 12px; /* Reduzido de 12px */
-        margin-bottom: 15px; /* Reduzido de 20px */
+        border-radius: 10px;
+        padding: 10px 15px;
+        margin-bottom: 15px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     }
+    .weather-container { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .weather-left, .weather-right { flex: 1; display: flex; align-items: center; gap: 6px; }
+    .weather-right { justify-content: flex-end; }
+    .sunrise-time { font-weight: 600; color: #FFB347; }
+    .sunset-time { font-weight: 600; color: #FF6B6B; }
+    .weather-center { flex: 2; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+    .compact-line { font-size: 0.85rem; color: #bdbdbd; white-space: nowrap; }
+    .line-2 { font-weight: bold; color: #e6e6e6; margin-top: 2px; }
 
-    .weather-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .weather-left, .weather-right {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 6px; /* Reduzido */
-    }
-
-    .weather-left {
-        justify-content: flex-start;
-    }
-
-    .weather-right {
-        justify-content: flex-end;
-    }
-
-    .sunrise-info, .sunset-info {
-        display: flex;
-        align-items: center;
-        gap: 4px; /* Reduzido */
-        font-size: 0.8rem; /* Reduzido */
-    }
-
-    .sunrise-time {
-        font-weight: 600;
-        color: #FFB347;
-    }
-
-    .sunset-time {
-        font-weight: 600;
-        color: #FF6B6B;
-    }
-
-    .weather-center {
-        flex: 1;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px; /* Reduzido de 4px */
-    }
-
-    /* Linhas Compactas de Clima/Horário */
-    .compact-line {
-        font-size: 0.85rem;
-        color: #bdbdbd;
-        white-space: nowrap;
-    }
-
-    .line-1 {
-        font-weight: normal;
-    }
-
-    .line-2 {
-        font-weight: bold;
-        color: #e6e6e6;
-        margin-top: 2px;
-    }
-
-    /* Linha de Data e Hora */
-    .date-time {
-        font-size: 0.85rem; /* Reduzido */
-        color: #bdbdbd;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px; /* Reduzido */
-    }
-
-    .date-line {
-        display: flex;
-        align-items: center;
-        gap: 6px; /* Reduzido */
-        justify-content: center;
-    }
-
-    .date-separator {
-        color: #555;
-    }
-
-    .time-display {
-        font-weight: 600;
-        color: #27ae60;
-        font-size: 0.9rem; /* Reduzido */
-        font-family: 'Courier New', monospace;
-    }
-
-    /* Linha de Localização e Clima */
-    .location-weather-line {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        font-size: 1rem;
-        font-weight: bold;
-        color: #e6e6e6;
-        flex-wrap: wrap;
-        margin-top: 4px; /* Espaçamento mínimo */
-    }
-
-    #location-display {
-        font-weight: normal;
-        color: #bdbdbd;
-        font-size: 0.9rem; /* Reduzido */
-    }
-
-    .weather-icon {
-        font-size: 1.2rem; /* Reduzido */
-    }
-
-    #temp-current-full {
-        font-size: 1.1rem; /* Reduzido */
-        font-weight: bold;
-        color: #ffffff;
-    }
-
-    .weather-description {
-        font-size: 0.9rem;
-        font-weight: normal;
-        color: #bdbdbd;
-    }
-
-    .temp-min-max {
-        font-size: 0.8rem; /* Reduzido */
-        font-weight: normal;
-        color: #bdbdbd;
-    }
-
-    /* ==================== WIDGET DE VIAGENS ORIGINAL ==================== */
-    .country-flag {
-        width: 18px;
-        height: 14px;
-        object-fit: cover;
-        border-radius: 2px;
-        margin-left: 6px;
-    }
-
-    #next-destination { 
-        background: #1f1f1f; 
-        border: 1px solid #333; 
-        padding: 12px 16px; 
-        border-radius: 10px; 
-        margin-bottom: 18px; 
-        font-size: 1.05rem; 
-        text-align: center; 
-    }
-
-    #trips-container { 
-        display: grid; 
-        grid-template-columns: repeat(3, 1fr); 
-        gap: 14px; 
-        width: 100%; 
-    }
-
-    .trip-card { 
-        background: #141414; 
-        border: 1px solid #262626; 
-        border-radius: 12px; 
-        padding: 14px; 
-        box-shadow: 0 0 8px rgba(0,0,0,0.6); 
-        text-align: left; 
-        display: flex; 
-        flex-direction: column; 
-        gap: 8px; 
-    }
-
-    .title-row { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        gap: 8px; 
-    }
-
-    .title-row h3 { 
-        margin: 0; 
-        font-size: 1rem; 
-        display: flex; 
-        align-items: center; 
-        gap: 6px; 
-    }
-
-    .progress-wrapper { 
-        position: relative; 
-        height: 26px; 
-        background: #222; 
-        border-radius: 20px; 
-        overflow: hidden; 
-        margin-top: 6px; 
-    }
-
-    .progress-fill { 
-        position: absolute; 
-        left: 0; 
-        top: 0; 
-        height: 100%; 
-        width: 0%; 
-        transition: width 0.6s linear, background 0.3s linear; 
-    }
-
-    .progress-percent { 
-        position: absolute; 
-        right: 8px; 
-        top: 50%; 
-        transform: translateY(-50%); 
-        font-size: 0.78rem; 
-        font-weight: 600; 
-        color: #ffffff; 
-        text-shadow: 0 1px 2px rgba(0,0,0,0.6); 
-        z-index: 10; 
-    }
-
-    .extra-msg-overlay { 
-        position: absolute; 
-        left: 0; 
-        right: 0; 
-        text-align: center; 
-        font-size: 0.78rem; 
-        font-weight: 600; 
-        color: #000000; 
-        text-shadow: 0 1px 2px rgba(255,255,255,0.6); 
-        top: 50%; 
-        transform: translateY(-50%); 
-        z-index: 10; 
-    }
-
-    .emoji-icon { 
-        position: absolute; 
-        top: 50%; 
-        transform: translateY(-50%); 
-        font-size: 20px; 
-        transition: left 0.5s ease, transform 0.25s ease; 
-    }
-
-    .emoji-jump { 
-        animation: jump 0.6s infinite alternate; 
-    }
-
-    @keyframes jump { 
-        from { transform: translateY(-50%); } 
-        to { transform: translateY(-80%); } 
-    }
-
-    .status { 
-        color: #e6e6e6; 
-        font-weight: 600; 
-        font-size: 0.9rem; 
-    }
-
-    .sub { 
-        color: #bdbdbd; 
-        font-size: 0.82rem; 
-    }
-
-    .date-info { 
-        color: #bdbdbd; 
-        font-size: 0.9rem; 
-        margin-top: 4px; 
-        display: flex; 
-        align-items: center; 
-        gap: 8px; 
-    }
-
-    .scale-info {
-        color: #bdbdbd;
-        font-size: 0.85rem;
-    }
-
-    .countdown {
-        color: #27ae60 !important;
-    }
-
-    /* Responsivo */
-    @media (max-width: 1024px) {
-        #trips-container {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .weather-container {
-            flex-wrap: wrap;
-        }
-
-        .weather-left,
-        .weather-center,
-        .weather-right {
-            flex: 1 1 100%;
-            text-align: center;
-            justify-content: center;
-        }
-    }
-
-    @media (max-width: 768px) {
-        #trips-container {
-            grid-template-columns: 1fr;
-        }
-
-        .weather-container {
-            flex-direction: column;
-        }
-
-        .weather-left,
-        .weather-center,
-        .weather-right {
-            width: 100%;
-        }
-    }
+    /* WIDGET DE VIAGENS */
+    #next-destination { background: #1f1f1f; border: 1px solid #333; padding: 12px; border-radius: 10px; margin-bottom: 18px; text-align: center; }
+    #trips-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    .trip-card { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .title-row { display: flex; justify-content: space-between; align-items: center; }
+    .progress-wrapper { position: relative; height: 26px; background: #222; border-radius: 20px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { position: absolute; height: 100%; width: 0%; transition: width 0.6s linear; }
+    .progress-percent, .extra-msg-overlay { position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 0.78rem; font-weight: 600; z-index: 10; }
+    .emoji-icon { position: absolute; top: 50%; transform: translateY(-50%); font-size: 20px; transition: left 0.5s ease; }
+    .status { color: #e6e6e6; font-weight: 600; font-size: 0.9rem; }
+    .sub { color: #bdbdbd; font-size: 0.82rem; }
+    .country-flag { width: 18px; height: 14px; margin-left: 6px; vertical-align: middle; }
+    @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
+    .emoji-jump { animation: jump 0.6s infinite alternate; }
 </style>
 </head>
 <body>
 
-<!-- Widget de Clima e Horário -->
 <div id="weather-widget">
     <div class="weather-container">
-        <!-- Nascer do Sol (Esquerda) -->
         <div class="weather-left">
-            <div class="sunrise-info">
-                <span>🌅</span>
-                <div>
-                    <div style="font-size: 0.8rem; color: #999;">Nascer do sol</div>
-                    <div class="sunrise-time" id="sunrise-time">--:--</div>
-                </div>
-            </div>
+            <span>🌅</span>
+            <div><div style="font-size: 0.7rem; color: #999;">Nascer</div><div class="sunrise-time" id="sunrise-time">--:--</div></div>
         </div>
-
-        <!-- Data, Hora, Localização e Temperatura (Centro) - Layout Compacto -->
         <div class="weather-center">
-            <div id="weather-line-1" class="compact-line line-1">
-                Carregando Data, Hora e Localização...
-            </div>
-            <div id="weather-line-2" class="compact-line line-2">
-                Carregando Clima...
-            </div>
+            <div id="weather-line-1" class="compact-line line-1">Detectando localização...</div>
+            <div id="weather-line-2" class="compact-line line-2">Carregando clima...</div>
         </div>
-
-        <!-- Pôr do Sol (Direita) -->
         <div class="weather-right">
-            <div class="sunset-info">
-                <div>
-                    <div style="font-size: 0.8rem; color: #999;">Pôr do sol</div>
-                    <div class="sunset-time" id="sunset-time">--:--</div>
-                </div>
-                <span>🌇</span>
-            </div>
+            <div><div style="font-size: 0.7rem; color: #999; text-align: right;">Pôr do sol</div><div class="sunset-time" id="sunset-time">--:--</div></div>
+            <span>🌇</span>
         </div>
     </div>
 </div>
 
-<!-- Widget de Viagens Original -->
 <div id="next-destination">Próximo destino: carregando...</div>
 <div id="trips-container"></div>
 
 <script>
-// ==================== CONSTANTES E DADOS ====================
-const FLAGS = {
-    'Guarulhos': 'https://flagcdn.com/w20/br.png',
-    'Lisboa': 'https://flagcdn.com/w20/pt.png',
-    'Madri': 'https://flagcdn.com/w20/es.png',
-    'Paris': 'https://flagcdn.com/w20/fr.png',
-    'Londres': 'https://flagcdn.com/w20/gb.png',
-    'Roma': 'https://flagcdn.com/w20/it.png',
-    'Milão': 'https://flagcdn.com/w20/it.png',
-    'Civitavecchia': 'https://flagcdn.com/w20/it.png',
-    'Valência': 'https://flagcdn.com/w20/es.png',
-    'Barcelona': 'https://flagcdn.com/w20/es.png',
-    'Marselha': 'https://flagcdn.com/w20/fr.png',
-    'Gênova': 'https://flagcdn.com/w20/it.png',
-    'Livorno': 'https://flagcdn.com/w20/it.png'
-};
-
+// CONFIGURAÇÕES E DADOS
+const FLAGS = { 'Guarulhos': 'br', 'Lisboa': 'pt', 'Madri': 'es', 'Paris': 'fr', 'Londres': 'gb', 'Roma': 'it', 'Milão': 'it', 'Civitavecchia': 'it', 'Valência': 'es', 'Barcelona': 'es', 'Marselha': 'fr', 'Gênova': 'it', 'Livorno': 'it' };
 const TRIPS = [
     { title: "Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
     { title: "Lisboa → Madri", emoji: "✈️", date: "2025-12-23T18:00:00", arrival: "20:20", type: "flight" },
@@ -417,586 +86,94 @@ const TRIPS = [
 ];
 
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-const DAY_MS = 86400000;
+let globalLocationName = "Localização não autorizada";
+let lastCoords = { lat: null, lon: null };
 
-// ==================== FUNÇÕES DE CLIMA E HORÁRIO ====================
+// SISTEMA DE LOCALIZAÇÃO E CLIMA
+async function getCityName(lat, lon) {
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
+        const data = await res.json();
+        const city = data.address.city || data.address.town || data.address.village || "Desconhecido";
+        return `${city}, ${data.address.country_code.toUpperCase()}`;
+    } catch { return "Erro ao obter local"; }
+}
 
-/**
- * Obtém a localização do usuário via Geolocation API
- */
-function getGeolocation() {
-    return new Promise((resolve, reject) => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    resolve({ latitude, longitude });
-                },
-                (error) => {
-                    console.warn("Erro ao obter geolocalização:", error);
-                    // Fallback: São Paulo, Brasil
-                    resolve({ latitude: -23.5505, longitude: -46.6333 });
-                }
-            );
-        } else {
-            console.warn("Geolocalização não suportada");
-            // Fallback: São Paulo, Brasil
-            resolve({ latitude: -23.5505, longitude: -46.6333 });
+async function updateWeatherData(lat, lon) {
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`);
+        const data = await res.json();
+        const current = data.current;
+        const daily = data.daily;
+        
+        document.getElementById('sunrise-time').textContent = daily.sunrise[0].split('T')[1];
+        document.getElementById('sunset-time').textContent = daily.sunset[0].split('T')[1];
+        
+        const weatherMap = { 0: ["☀️","Céu Limpo"], 1: ["🌤️","Limpo"], 2: ["⛅","Parcial. Nublado"], 3: ["☁️","Nublado"], 45: ["🌫️","Neblina"], 61: ["🌧️","Chuva Leve"], 95: ["⛈️","Tempestade"] };
+        const [icon, desc] = weatherMap[current.weather_code] || ["🌡️", "Clima"];
+        
+        document.getElementById('weather-line-2').textContent = `${icon} ${Math.round(current.temperature_2m)}°C | ${desc} (Máx: ${Math.round(daily.temperature_2m_max[0])}°C Mín: ${Math.round(daily.temperature_2m_min[0])}°C)`;
+    } catch (e) { console.error("Erro clima", e); }
+}
+
+function initLocationTracking() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.watchPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Só atualiza se mudar mais de 0.01 grau (evita spam de API)
+        if (Math.abs(lastCoords.lat - latitude) > 0.01 || Math.abs(lastCoords.lon - longitude) > 0.01) {
+            lastCoords = { lat: latitude, lon: longitude };
+            globalLocationName = await getCityName(latitude, longitude);
+            updateWeatherData(latitude, longitude);
         }
-    });
+    }, () => {
+        globalLocationName = "S. Paulo, BR (Padrão)";
+        updateWeatherData(-23.55, -46.63);
+    }, { enableHighAccuracy: true });
 }
 
-/**
- * Obtém o nome da cidade e país a partir das coordenadas (Reverse Geocoding)
- */
-async function getCityName(latitude, longitude) {
-    try {
-        // Usando Nominatim (OpenStreetMap) para Reverse Geocoding
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        const address = data.address;
-        const city = address.city || address.town || address.village || address.county || 'Localização Desconhecida';
-        const country = address.country || '';
-        
-        return `${city}, ${country}`;
-    } catch (error) {
-        console.error("Erro ao obter nome da cidade:", error);
-        return "Localização Desconhecida";
-    }
-}
-
-/**
- * Obtém dados de clima e nascer/pôr do sol da Open-Meteo API
- */
-async function getWeatherData(latitude, longitude) {
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&start_date=${today}&end_date=${today}`;
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        return {
-            current_temp: Math.round(data.current.temperature_2m),
-            weather_code: data.current.weather_code,
-            max_temp: Math.round(data.daily.temperature_2m_max[0]),
-            min_temp: Math.round(data.daily.temperature_2m_min[0]),
-            sunrise: data.daily.sunrise[0],
-            sunset: data.daily.sunset[0],
-            timezone: data.timezone
-        };
-    } catch (error) {
-        console.error("Erro ao obter dados de clima:", error);
-        return null;
-    }
-}
-
-/**
- * Converte código de clima WMO para ícone e descrição apropriada
- */
-function getWeatherInfo(weatherCode) {
-    // WMO Weather interpretation codes (simplificado)
-    if (weatherCode <= 1) return { icon: "☀️", description: "Ensolarado" }; // Clear sky
-    if (weatherCode <= 3) return { icon: "⛅", description: "Parcialmente Nublado" }; // Partly cloudy
-    if (weatherCode <= 48) return { icon: "🌫️", description: "Neblina" }; // Foggy
-    if (weatherCode <= 67) return { icon: "🌧️", description: "Chuva" }; // Drizzle/Rain
-    if (weatherCode <= 77) return { icon: "❄️", description: "Neve" }; // Snow
-    if (weatherCode <= 82) return { icon: "🌧️", description: "Chuva Forte" }; // Rain showers
-    if (weatherCode <= 86) return { icon: "❄️", description: "Neve Forte" }; // Snow showers
-    if (weatherCode <= 99) return { icon: "⛈️", description: "Tempestade" }; // Thunderstorm
-    return { icon: "☀️", description: "Desconhecido" }; // Default
-}
-
-/**
- * Formata hora no formato HH:MM
- */
-function formatTime(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
-
-/**
- * Atualiza o widget de clima e horário
- */
-async function updateWeatherWidget() {
-    const { latitude, longitude } = await getGeolocation();
-    const locationName = await getCityName(latitude, longitude);
-    const weatherData = await getWeatherData(latitude, longitude);
-    
-    // Atualiza a localização
-    // document.getElementById('location-display').textContent = locationName; // Removido, agora no line-1
-
-    if (!weatherData) {
-        console.error("Não foi possível obter dados de clima");
-        return;
-    }
-
-    const weatherInfo = getWeatherInfo(weatherData.weather_code);
-
-    // Atualizar elementos de clima e horário
-    document.getElementById('sunrise-time').textContent = formatTime(weatherData.sunrise);
-    document.getElementById('sunset-time').textContent = formatTime(weatherData.sunset);
-    
-    // CONSOLIDAÇÃO PARA weather-line-2
-    const line2Content = `${weatherInfo.icon} ${weatherData.current_temp}°C | ${weatherInfo.description} (Max: ${weatherData.max_temp}°C Min: ${weatherData.min_temp}°C)`;
-    document.getElementById('weather-line-2').textContent = line2Content;
-    
-    // document.getElementById('temp-current-full').textContent = `${weatherData.current_temp}°C`; // Removido
-    // document.getElementById('temp-max').textContent = `${weatherData.max_temp}°C`; // Removido
-    // document.getElementById('temp-min').textContent = `${weatherData.min_temp}°C`; // Removido
-    // document.getElementById('weather-icon').textContent = weatherInfo.icon; // Removido
-    // document.getElementById('weather-description').textContent = weatherInfo.description; // Removido
-
-    // ATUALIZAÇÃO DA LINHA 1 (Requer a localização que é assíncrona)
-    // A data/hora será atualizada pela função updateDateTime
-    const line1Element = document.getElementById('weather-line-1');
-    const currentLine1 = line1Element.textContent.split(' | ');
-    
-    // Verifica se a data/hora já foi preenchida pelo updateDateTime
-    if (currentLine1.length >= 3) {
-        // Se sim, apenas anexa a localização
-        line1Element.textContent = `${currentLine1[0]} | ${currentLine1[1]} | ${currentLine1[2]} | ${locationName}`;
-    } else {
-        // Se não, preenche apenas a localização (updateDateTime fará o resto)
-        line1Element.textContent = `Carregando Data, Hora... | ${locationName}`;
-    }
-    
-    // Força a atualização da data/hora para garantir que a linha 1 esteja completa
-    updateDateTime(locationName);
-}
-
-/**
- * Atualiza a data e hora em tempo real
- */
-function updateDateTime(locationName = null) {
+function updateDateTime() {
     const now = new Date();
-    
-    // Dia da semana
-    const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const dayOfWeek = daysOfWeek[now.getDay()];
-    
-    // Data
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const dateDisplay = `${day}/${month}/${year}`;
-    
-    // Hora
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    const timeDisplay = `${hours}:${minutes}:${seconds}`;
-    
-    // CONSOLIDAÇÃO PARA weather-line-1
-    const line1Element = document.getElementById('weather-line-1');
-    
-    // Tenta obter a localização da chamada anterior de updateWeatherWidget, se não, usa o fallback
-    let currentLocation = 'Carregando Localização...';
-    if (locationName) {
-        currentLocation = locationName;
-    } else if (line1Element && line1Element.textContent.includes(' | ')) {
-        const parts = line1Element.textContent.split(' | ');
-        if (parts.length === 4) {
-            currentLocation = parts[3];
-        }
-    }
-    
-    line1Element.textContent = `${dayOfWeek} | ${dateDisplay} | ${timeDisplay} | ${currentLocation}`;
-    
-    // document.getElementById('day-of-week').textContent = dayOfWeek; // Removido
-    // document.getElementById('date-display').textContent = dateDisplay; // Removido
-    // document.getElementById('time-display').textContent = timeDisplay; // Removido
+    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const timeStr = now.toLocaleTimeString('pt-BR');
+    const dateStr = now.toLocaleDateString('pt-BR');
+    document.getElementById('weather-line-1').textContent = `${days[now.getDay()]} | ${dateStr} | ${timeStr} | ${globalLocationName}`;
 }
 
-// ==================== FUNÇÕES DO WIDGET DE VIAGENS (Com Correções) ====================
-
-function cleanLocation(raw) {
-    return raw
-        .replace(/[☀-➿]/g, '')
-        .replace(/[()]/g, '')
-        .replace(/–.*/g, '')
-        .trim();
+// LÓGICA DE VIAGENS
+function formatCountdown(ms) {
+    if (ms <= 0) return "Viagem Concluída!";
+    const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+    return `${d}d ${h}h ${m}m ${s % 60}s`;
 }
 
-/**
- * Extrai os horários de chegada e partida da escala.
- */
-function parseScaleTimes(trip) {
-    if (!trip.scale) return null;
-    const match = trip.scale.match(/Escala em (.+?) \((.+?)–(.+?)\)/);
-    if (!match) return null;
-    return {
-        location: match[1],
-        arrive1: match[2],
-        depart2: match[3]
-    };
-}
-
-/**
- * Cria um objeto Date completo a partir de uma data base e uma string de hora (HH:MM).
- */
-function createDateFromTime(baseDate, timeStr) {
-    const [h, m] = timeStr.split(':').map(Number);
-    const newDate = new Date(baseDate);
-    newDate.setHours(h, m, 0, 0);
-    return newDate;
-}
-
-function getOriginDest(title) {
-    if (title.includes('→')) {
-        const parts = title.split('→').map(p => cleanLocation(p));
-        return { from: parts[0].trim(), to: parts[1].trim() };
-    }
-    const single = cleanLocation(title);
-    return { from: single, to: single };
-}
-
-function flagForUrl(loc) { return FLAGS[loc] || null; }
-
-function clamp(v, a = 0, b = 100) { return Math.max(a, Math.min(b, v)); }
-
-function getColorForTimeLeft(msLeft) {
-    const daysLeft = msLeft / DAY_MS;
-
-    if (msLeft <= 0) return "#27AE60"; // Concluído
-    if (daysLeft <= 9) return "#33FF33"; // 0 a 9 dias (Verde Limão)
-    if (daysLeft <= 20) return "#A8E61D"; // 10 a 20 dias (Verde Pistache)
-    if (daysLeft <= 30) return "#E74C3C"; // 21 a 30 dias (Vermelho)
-    return "#4b6b82"; // Mais de 30 dias (Azul/Cinza Padrão)
-}
-
-/**
- * CORREÇÃO DO BUG 3 (Melhoria 1): Assinatura da função alterada para refletir o uso de milissegundos.
- */
-function formatCountdown(targetMs, nowMs) {
-    const diff = targetMs - nowMs;
-    if (diff <= 0) return "0 dias 0h 0m 0s";
-    const s = Math.floor(diff / 1000);
-    const dias = Math.floor(s / 86400);
-    const h = Math.floor((s % 86400) / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${dias} dias ${h}h ${m}m ${sec}s`;
-}
-
-/**
- * Cria o elemento HTML estático do cartão de viagem.
- */
-function createTripCard(trip) {
-    const odCard = getOriginDest(trip.title);
-    let originFlagUrl = flagForUrl(odCard.from);
-    if (trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end") originFlagUrl = null;
-    const destFlagUrl = flagForUrl(odCard.to);
-    const destFlag = destFlagUrl ? `<img class='country-flag' src='${destFlagUrl}' />` : '';
-    const originFlag = originFlagUrl ? `<img class='country-flag' src='${originFlagUrl}' />` : '';
-
-    const card = document.createElement('div');
-    card.className = 'trip-card';
-
-    const titleHtml = (trip.type === "cruise-stop" || trip.type === "cruise-start" || trip.type === "cruise-end")
-        ? `${odCard.to}${destFlag}`
-        : `${originFlag}${odCard.from} → ${odCard.to}${destFlag}`;
-
-    const targetDate = new Date(trip.date).toLocaleDateString('pt-BR');
-
-    card.innerHTML = `
-        <div class="title-row">
-            <h3>${titleHtml}</h3>
-            <div class="sub">${targetDate}</div>
-        </div>
-        ${trip.scale ? `<div class="scale-info">✈️ <i>${trip.scale}</i></div>` : ''}
-
-        <div class="progress-wrapper">
-            <div class="progress-fill" data-dynamic="fill">
-                <div class="extra-msg-overlay" data-dynamic="extra-msg"></div>
-            </div>
-            <div class="progress-percent" data-dynamic="percent">0%</div>
-            <div class="emoji-icon" data-dynamic="emoji">${trip.type === 'train' ? '🚆' : trip.type.startsWith('cruise') ? '🚢' : '✈️'}</div>
-        </div>
-
-        <div class="status" data-dynamic="status"></div>
-        <div class="sub countdown" data-dynamic="countdown" style="color:#27ae60"></div>
-    `;
-
-    return card;
-}
-
-/**
- * Atualiza os elementos dinâmicos de um cartão de viagem.
- */
-function updateTripCard(cardElement, trip, now) {
-    const target = new Date(trip.date);
-    let msLeft = target - now;
-
-    // 1. Cálculo do Progresso
-    let progressPct = 0;
-    if (msLeft <= 0) progressPct = 100;
-    else progressPct = clamp(((MAX_WINDOW_MS - msLeft) / MAX_WINDOW_MS) * 100, 0, 100);
-
-    const color = getColorForTimeLeft(msLeft > MAX_WINDOW_MS ? MAX_WINDOW_MS : msLeft);
-    const emojiLeft = `calc(${progressPct}% - 10px)`;
-
-    let extraMsg = "";
-    const daysLeft = msLeft / DAY_MS;
-
-    // CORREÇÃO DO BUG 3: Garante que viagens passadas tenham o status "Viagem concluída"
-    if (msLeft <= 0) {
-        extraMsg = "Viagem concluída";
-    } else {
-        if (daysLeft <= 7 && daysLeft > 0) {
-            extraMsg = "A sua viagem está chegando!";
-        }
-
-        // Lógica de status para Voos e Trens (incluindo escala)
-        if (trip.type === "flight" || trip.type === "train") {
-            const departTime = new Date(trip.date);
-            const arrTime = new Date(trip.date);
-
-            const scaleInfo = parseScaleTimes(trip);
-            if (scaleInfo) {
-                // CORREÇÃO DO BUG 2: Lógica de data para voos com escala
-                const T1_depart = new Date(trip.date);
-                const T1_arrive = createDateFromTime(T1_depart, scaleInfo.arrive1);
-
-                if (T1_arrive < T1_depart) T1_arrive.setDate(T1_arrive.getDate() + 1);
-
-                const T2_depart = createDateFromTime(T1_arrive, scaleInfo.depart2);
-                const T2_arrive = createDateFromTime(T2_depart, trip.arrival);
-
-                if (T2_depart < T1_arrive) T2_depart.setDate(T2_depart.getDate() + 1);
-                if (T2_arrive < T2_depart) T2_arrive.setDate(T2_arrive.getDate() + 1);
-
-                if (now < T1_depart - 3600000) {
-                    // Status padrão (contagem regressiva)
-                }
-                else if (now >= T1_depart - 3600000 && now < T1_depart) {
-                    extraMsg = "Hora de Embarcar";
-                }
-                else if (now >= T1_depart + 1800000 && now < T1_arrive + 3600000) {
-                    extraMsg = "Embarque concluído. Boa viagem!";
-                }
-                else if (now >= T1_arrive + 3600000 && now < T2_depart - 3600000) {
-                    extraMsg = "Primeiro trecho concluído";
-                }
-                else if (now >= T2_depart - 3600000 && now < T2_depart) {
-                    extraMsg = "Hora de embarcar novamente";
-                }
-                else if (now >= T2_depart + 1800000 && now < T2_arrive + 3600000) {
-                    extraMsg = "Embarque concluído. Boa viagem!";
-                }
-                else if (now >= T2_arrive + 3600000) {
-                    extraMsg = "Viagem concluída";
-                }
-            } else {
-                // Lógica para voos sem escala (original)
-                if (trip.arrival) {
-                    const [ah, am] = trip.arrival.split(":").map(Number);
-                    arrTime.setHours(ah, am);
-                    if (arrTime < departTime) arrTime.setDate(arrTime.getDate() + 1);
-                }
-                if (now >= departTime - 3600000 && now < departTime)
-                    extraMsg = "Hora de Embarcar";
-                else if (now >= departTime + 1800000 && now < arrTime + 3600000)
-                    extraMsg = "Embarque concluído. Boa viagem!";
-            }
-        }
-
-        // Lógica de status para Cruzeiros
-        else if (trip.type.startsWith("cruise")) {
-            const target = new Date(trip.date);
-
-            if (trip.type === "cruise-start") {
-                const departTime = new Date(trip.depart);
-                const embarkTime = createDateFromTime(target, trip.embark);
-                const prepareTime = new Date(target);
-                prepareTime.setHours(10, 30, 0, 0);
-                const enjoyTime = new Date(target);
-                enjoyTime.setHours(12, 0, 0, 0);
-                const soonTime = new Date(target);
-                soonTime.setHours(18, 0, 0, 0);
-
-                if (now >= prepareTime && now < enjoyTime) {
-                    extraMsg = "Prepare-se para embarcar";
-                } else if (now >= enjoyTime && now < soonTime) {
-                    extraMsg = "Embarque concluído, aproveite o navio!";
-                } else if (now >= soonTime && now < departTime) {
-                    extraMsg = "O navio vai partir em breve";
-                } else if (now >= departTime) {
-                    extraMsg = "Embarque concluído, boa viagem";
-                }
-            }
-
-            else if (trip.type === "cruise-stop") {
-                const departTime = new Date(trip.depart);
-                const arriveTime = target;
-                const hourBeforeDepart = new Date(departTime.getTime() - 3600000);
-                const halfHourAfterDepart = new Date(departTime.getTime() + 1800000);
-
-                const odCard = getOriginDest(trip.title);
-                const city = odCard.to;
-
-                if (now >= arriveTime && now < hourBeforeDepart) {
-                    extraMsg = `Seja bem-vindo à ${city}, aproveite o passeio`;
-                } else if (now >= hourBeforeDepart && now < departTime) {
-                    extraMsg = "Hora de embarcar";
-                } else if (now >= departTime && now < halfHourAfterDepart) {
-                    extraMsg = "Embarque concluído, boa viagem";
-                }
-            }
-
-            else if (trip.type === "cruise-end") {
-                const arriveTime = target;
-                const hourAfterArrive = new Date(arriveTime.getTime() + 3600000);
-
-                if (now < arriveTime) {
-                    // Status padrão (contagem regressiva)
-                } else if (now >= arriveTime && now < hourAfterArrive) {
-                    extraMsg = "Chegada ao destino final";
-                }
-            }
-        }
-    }
-
-    // 2. Cálculo do Status (Estático)
-    let status = (() => {
-        if (trip.type === "cruise-start")
-            return `Embarque previsto: ${trip.embark} — Partida: ${new Date(trip.depart).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-        if (trip.type === "cruise-end")
-            return `Chegada prevista: ${trip.arrival}`;
-        if (trip.type === "cruise-stop")
-            return `Chegada prevista: ${target.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — Partida prevista: ${new Date(trip.depart).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-        if (trip.arrival)
-            return `Partida prevista: ${target.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — Chegada prevista: ${trip.arrival}`;
-        return `Partida prevista: ${target.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-    })();
-
-
-    // 3. Atualização dos Elementos
-    const fillElement = cardElement.querySelector('[data-dynamic="fill"]');
-    const percentElement = cardElement.querySelector('[data-dynamic="percent"]');
-    const extraMsgElement = cardElement.querySelector('[data-dynamic="extra-msg"]');
-    const emojiElement = cardElement.querySelector('[data-dynamic="emoji"]');
-    const statusElement = cardElement.querySelector('[data-dynamic="status"]');
-    const countdownElement = cardElement.querySelector('[data-dynamic="countdown"]');
-
-    fillElement.style.width = `${progressPct}%`;
-    fillElement.style.backgroundColor = color;
-    percentElement.textContent = `${Math.round(progressPct)}%`;
-    statusElement.textContent = status;
-
-    if (extraMsg) {
-        extraMsgElement.textContent = extraMsg;
-        extraMsgElement.style.display = 'block';
-        percentElement.style.display = 'none';
-    } else {
-        extraMsgElement.textContent = '';
-        extraMsgElement.style.display = 'none';
-        percentElement.style.display = (progressPct >= 100) ? 'none' : 'block';
-    }
-
-    emojiElement.style.left = emojiLeft;
-    if (progressPct > 0 && progressPct < 100) {
-        emojiElement.classList.add('emoji-jump');
-    } else {
-        emojiElement.classList.remove('emoji-jump');
-    }
-
-    if (msLeft > 0) {
-        countdownElement.textContent = formatCountdown(target.getTime(), now.getTime());
-        countdownElement.style.color = color;
-    } else {
-        countdownElement.textContent = "Viagem Concluída!";
-        countdownElement.style.color = "#27AE60";
-    }
-}
-
-/**
- * Encontra a próxima viagem e atualiza o elemento #next-destination.
- */
-function findNextTrip(now) {
-    let nextTrip = null;
-    let minMsLeft = Infinity;
-
-    for (const trip of TRIPS) {
-        const target = new Date(trip.date);
-        const msLeft = target - now;
-
-        if (msLeft > 0 && msLeft < minMsLeft) {
-            minMsLeft = msLeft;
-            nextTrip = trip;
-        }
-    }
-
-    const nextDestinationElement = document.getElementById('next-destination');
-    if (nextTrip) {
-        const odCard = getOriginDest(nextTrip.title);
-        const targetDate = new Date(nextTrip.date);
-        const dateStr = targetDate.toLocaleDateString('pt-BR');
-        const timeStr = targetDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-        let tripTitle;
-        if (nextTrip.type === "cruise-stop" || nextTrip.type === "cruise-start" || nextTrip.type === "cruise-end") {
-            tripTitle = odCard.to;
-        } else {
-            tripTitle = `${odCard.from} → ${odCard.to}`;
-        }
-
-        nextDestinationElement.innerHTML = `Próximo destino: <b>${tripTitle}</b> — ${dateStr}, ${timeStr}`;
-    } else {
-        nextDestinationElement.textContent = "Todas as viagens foram concluídas!";
-    }
-}
-
-/**
- * Renderiza todos os cartões de viagem.
- */
 function renderTrips() {
     const container = document.getElementById('trips-container');
-    container.innerHTML = '';
-    TRIPS.forEach(trip => {
-        const card = createTripCard(trip);
-        card.dataset.tripIndex = TRIPS.indexOf(trip);
-        container.appendChild(card);
-    });
+    container.innerHTML = TRIPS.map((trip, i) => `
+        <div class="trip-card" id="trip-${i}">
+            <div class="title-row">
+                <h3>${trip.emoji} ${trip.title}</h3>
+                <div class="sub">${new Date(trip.date).toLocaleDateString('pt-BR')}</div>
+            </div>
+            <div class="progress-wrapper">
+                <div class="progress-fill" style="background: #4b6b82">
+                    <div class="extra-msg-overlay"></div>
+                </div>
+                <div class="progress-percent">0%</div>
+                <div class="emoji-icon">${trip.emoji}</div>
+            </div>
+            <div class="status">Calculando...</div>
+            <div class="sub countdown">--</div>
+        </div>
+    `).join('');
 }
 
-/**
- * Atualiza o estado de todos os cartões de viagem.
- */
-function updateAllCards() {
+function updateAll() {
     const now = new Date();
-    const cardElements = document.querySelectorAll('.trip-card');
+    let nextTrip = null, minMs = Infinity;
 
-    cardElements.forEach(cardElement => {
-        const index = parseInt(cardElement.dataset.tripIndex);
-        const trip = TRIPS[index];
-        updateTripCard(cardElement, trip, now);
-    });
-
-    findNextTrip(now);
-}
-
-/**
- * Inicializa o widget.
- */
-function init() {
-    renderTrips();
-    updateAllCards();
-    setInterval(updateAllCards, 1000);
-    
-    // Atualizar data/hora a cada segundo
-    updateDateTime();
-    setInterval(() => updateDateTime(), 1000);
-    
-    // Atualizar dados de clima a cada 10 minutos
-    updateWeatherWidget();
-    setInterval(updateWeatherWidget, 10 * 60 * 1000);
-}
-
-// Inicia o widget quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
-</html>
+    TRIPS.forEach((trip, i) => {
+        const card = document.getElementById(`trip-${i}`);
+        const target = new Date(trip.date);
+        const msLeft = target - now;
+        const pct = Math.max(0, Math.min(100, ((
