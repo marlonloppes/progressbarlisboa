@@ -3,166 +3,161 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens – Original + Local Atual</title>
+<title>Widget Viagens – Completo com Clima (v5 - Ultra Compacto)</title>
 
 <style>
-body{
-    margin:0;
-    padding:20px;
-    font-family:Arial,sans-serif;
-    background:#0d0d0d;
-    color:#fff;
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0d0d0d;color:#fff;padding:25px}
+
+/* ================= WIDGET CLIMA ================= */
+#weather-widget{
+  background:linear-gradient(135deg,#1f1f1f,#262626);
+  border:1px solid #333;
+  border-radius:10px;
+  padding:8px 12px;
+  margin-bottom:15px;
 }
 
-.widget{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-    gap:12px;
+.weather-container{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
 }
 
-.card{
-    background:#1f1f1f;
-    border:1px solid #2e2e2e;
-    border-radius:10px;
-    padding:12px;
-    text-align:center;
-    box-shadow:0 4px 8px rgba(0,0,0,.3);
+.weather-left,.weather-right{flex:1}
+.weather-center{text-align:center;flex:2}
+
+.sunrise-time{color:#FFB347;font-weight:600}
+.sunset-time{color:#FF6B6B;font-weight:600}
+
+.compact-line{font-size:.85rem;color:#bdbdbd}
+.line-2{font-weight:bold;color:#e6e6e6}
+
+/* ================= VIAGENS ================= */
+.country-flag{width:18px;height:14px;border-radius:2px;margin-left:6px}
+
+#next-destination{
+  background:#1f1f1f;
+  border:1px solid #333;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:18px;
+  text-align:center;
 }
 
-.card h3{
-    font-size:.85rem;
-    margin-bottom:6px;
-    color:#aaa;
+#trips-container{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
 }
 
-.card p{
-    font-size:1rem;
-    font-weight:bold;
-}
-
-.flag{
-    width:24px;
-    height:16px;
-    object-fit:cover;
-    border-radius:3px;
-    margin-bottom:6px;
+.trip-card{
+  background:#141414;
+  border:1px solid #262626;
+  border-radius:12px;
+  padding:14px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="widget">
-
-  <!-- LOCAL ATUAL -->
-  <div class="card">
-    <h3 id="local-name">Local atual</h3>
-    <p id="local-time">--:--</p>
+<div id="weather-widget">
+  <div class="weather-container">
+    <div class="weather-left">
+      🌅 <span id="sunrise-time">--:--</span>
+    </div>
+    <div class="weather-center">
+      <div id="weather-line-1" class="compact-line">Carregando localização…</div>
+      <div id="weather-line-2" class="compact-line line-2">Carregando clima…</div>
+    </div>
+    <div class="weather-right">
+      <span id="sunset-time">--:--</span> 🌇
+    </div>
   </div>
-
-  <div class="card">
-    <img class="flag" src="https://flagcdn.com/w20/br.png">
-    <h3>Brasil</h3>
-    <p id="br">--:--</p>
-  </div>
-
-  <div class="card">
-    <img class="flag" src="https://flagcdn.com/w20/pt.png">
-    <h3>Portugal</h3>
-    <p id="pt">--:--</p>
-  </div>
-
-  <div class="card">
-    <img class="flag" src="https://flagcdn.com/w20/es.png">
-    <h3>Espanha</h3>
-    <p id="es">--:--</p>
-  </div>
-
-  <div class="card">
-    <img class="flag" src="https://flagcdn.com/w20/fr.png">
-    <h3>França</h3>
-    <p id="fr">--:--</p>
-  </div>
-
-  <div class="card">
-    <img class="flag" src="https://flagcdn.com/w20/gb.png">
-    <h3>Reino Unido</h3>
-    <p id="uk">--:--</p>
-  </div>
-
-  <div class="card">
-    <img class="flag" src="https://flagcdn.com/w20/it.png">
-    <h3>Itália</h3>
-    <p id="it">--:--</p>
-  </div>
-
 </div>
 
+<div id="next-destination">Próximo destino: carregando…</div>
+<div id="trips-container"></div>
+
 <script>
-let localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+/* ================= ESTADO GLOBAL ================= */
+let currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let currentLocation = "Localizando…";
 
-// ================== GEOLOCALIZAÇÃO EM TEMPO REAL ==================
-if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(async pos => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
+/* ================= GEO EM TEMPO REAL ================= */
+navigator.geolocation.watchPosition(async pos=>{
+  const lat = pos.coords.latitude;
+  const lon = pos.coords.longitude;
 
-        // Nome da cidade
-        try{
-            const geo = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`
-            );
-            const data = await geo.json();
-            const a = data.address || {};
-            document.getElementById("local-name").textContent =
-              a.city || a.town || a.village || "Local atual";
-        }catch{}
+  // Cidade
+  try{
+    const geo = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`
+    );
+    const data = await geo.json();
+    const a = data.address || {};
+    currentLocation = `${a.city || a.town || a.village || "Local"}, ${a.country || ""}`;
+  }catch{}
 
-        // Timezone real pela posição
-        try{
-            const tz = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`
-            );
-            const tzData = await tz.json();
-            localTimezone = tzData.timezone;
-        }catch{}
-    });
+  // Timezone real
+  try{
+    const tz = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`
+    );
+    const tzData = await tz.json();
+    currentTimezone = tzData.timezone;
+  }catch{}
+
+  updateWeather(lat,lon);
+},{enableHighAccuracy:true});
+
+/* ================= CLIMA ================= */
+async function updateWeather(lat,lon){
+  const today = new Date().toISOString().split("T")[0];
+  const res = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&start_date=${today}&end_date=${today}`
+  );
+  const d = await res.json();
+
+  document.getElementById("sunrise-time").textContent =
+    formatTime(d.daily.sunrise[0]);
+  document.getElementById("sunset-time").textContent =
+    formatTime(d.daily.sunset[0]);
+
+  document.getElementById("weather-line-2").textContent =
+    `🌡️ ${Math.round(d.current.temperature_2m)}°C (Max ${Math.round(d.daily.temperature_2m_max[0])}° / Min ${Math.round(d.daily.temperature_2m_min[0])}°)`;
 }
 
-// ================== RELÓGIOS ==================
-function updateClocks(){
-    const now = new Date();
-
-    const zones = {
-        br: "America/Sao_Paulo",
-        pt: "Europe/Lisbon",
-        es: "Europe/Madrid",
-        fr: "Europe/Paris",
-        uk: "Europe/London",
-        it: "Europe/Rome"
-    };
-
-    for(const id in zones){
-        document.getElementById(id).textContent =
-            new Intl.DateTimeFormat("pt-BR",{
-                hour:"2-digit",
-                minute:"2-digit",
-                second:"2-digit",
-                timeZone:zones[id]
-            }).format(now);
-    }
-
-    document.getElementById("local-time").textContent =
-        new Intl.DateTimeFormat("pt-BR",{
-            hour:"2-digit",
-            minute:"2-digit",
-            second:"2-digit",
-            timeZone:localTimezone
-        }).format(now);
+/* ================= DATA/HORA COM FUSO REAL ================= */
+function formatTime(dateStr){
+  return new Intl.DateTimeFormat("pt-BR",{
+    hour:"2-digit",
+    minute:"2-digit",
+    timeZone:currentTimezone
+  }).format(new Date(dateStr));
 }
 
-updateClocks();
-setInterval(updateClocks,1000);
+function updateDateTime(){
+  const now = new Date();
+  const txt = new Intl.DateTimeFormat("pt-BR",{
+    weekday:"long",
+    day:"2-digit",
+    month:"2-digit",
+    year:"numeric",
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit",
+    timeZone:currentTimezone
+  }).format(now);
+
+  document.getElementById("weather-line-1").textContent =
+    `${txt} | ${currentLocation}`;
+}
+
+setInterval(updateDateTime,1000);
+updateDateTime();
 </script>
 
 </body>
