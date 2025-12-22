@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Widget Viagens & Clima Real-Time</title>
+<title>Widget Viagens – Completo com Clima (v5 - Ultra Compacto)</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #0d0d0d; color: #ffffff; padding: 25px; }
 
-    /* WIDGET DE CLIMA */
+    /* ==================== WIDGET DE CLIMA E HORÁRIO ==================== */
     #weather-widget {
         background: linear-gradient(135deg, #1f1f1f 0%, #262626 100%);
         border: 1px solid #333;
         border-radius: 10px;
-        padding: 10px 15px;
+        padding: 8px 12px;
         margin-bottom: 15px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
     }
@@ -26,20 +26,26 @@
     .compact-line { font-size: 0.85rem; color: #bdbdbd; white-space: nowrap; }
     .line-2 { font-weight: bold; color: #e6e6e6; margin-top: 2px; }
 
-    /* WIDGET DE VIAGENS */
-    #next-destination { background: #1f1f1f; border: 1px solid #333; padding: 12px; border-radius: 10px; margin-bottom: 18px; text-align: center; }
-    #trips-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-    .trip-card { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-    .title-row { display: flex; justify-content: space-between; align-items: center; }
+    /* ==================== WIDGET DE VIAGENS ==================== */
+    .country-flag { width: 18px; height: 14px; object-fit: cover; border-radius: 2px; margin-left: 6px; }
+    #next-destination { background: #1f1f1f; border: 1px solid #333; padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; text-align: center; }
+    #trips-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
+    .trip-card { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 14px; box-shadow: 0 0 8px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 8px; }
+    .title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .title-row h3 { margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 6px; }
     .progress-wrapper { position: relative; height: 26px; background: #222; border-radius: 20px; overflow: hidden; margin-top: 6px; }
-    .progress-fill { position: absolute; height: 100%; width: 0%; transition: width 0.6s linear; }
-    .progress-percent, .extra-msg-overlay { position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 0.78rem; font-weight: 600; z-index: 10; }
+    .progress-fill { position: absolute; left: 0; top: 0; height: 100%; width: 0%; transition: width 0.6s linear, background 0.3s linear; }
+    .progress-percent, .extra-msg-overlay { position: absolute; left: 0; right: 0; text-align: center; top: 50%; transform: translateY(-50%); font-size: 0.78rem; font-weight: 600; z-index: 10; }
+    .extra-msg-overlay { color: #000; text-shadow: 0 1px 2px rgba(255,255,255,0.6); }
     .emoji-icon { position: absolute; top: 50%; transform: translateY(-50%); font-size: 20px; transition: left 0.5s ease; }
+    .emoji-jump { animation: jump 0.6s infinite alternate; }
+    @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
     .status { color: #e6e6e6; font-weight: 600; font-size: 0.9rem; }
     .sub { color: #bdbdbd; font-size: 0.82rem; }
-    .country-flag { width: 18px; height: 14px; margin-left: 6px; vertical-align: middle; }
-    @keyframes jump { from { transform: translateY(-50%); } to { transform: translateY(-80%); } }
-    .emoji-jump { animation: jump 0.6s infinite alternate; }
+    .countdown { color: #27ae60 !important; }
+
+    @media (max-width: 1024px) { #trips-container { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { #trips-container { grid-template-columns: 1fr; } .weather-container { flex-direction: column; } }
 </style>
 </head>
 <body>
@@ -48,14 +54,20 @@
     <div class="weather-container">
         <div class="weather-left">
             <span>🌅</span>
-            <div><div style="font-size: 0.7rem; color: #999;">Nascer</div><div class="sunrise-time" id="sunrise-time">--:--</div></div>
+            <div>
+                <div style="font-size: 0.8rem; color: #999;">Nascer</div>
+                <div class="sunrise-time" id="sunrise-time">--:--</div>
+            </div>
         </div>
         <div class="weather-center">
             <div id="weather-line-1" class="compact-line line-1">Detectando localização...</div>
             <div id="weather-line-2" class="compact-line line-2">Carregando clima...</div>
         </div>
         <div class="weather-right">
-            <div><div style="font-size: 0.7rem; color: #999; text-align: right;">Pôr do sol</div><div class="sunset-time" id="sunset-time">--:--</div></div>
+            <div>
+                <div style="font-size: 0.8rem; color: #999; text-align: right;">Pôr do sol</div>
+                <div class="sunset-time" id="sunset-time">--:--</div>
+            </div>
             <span>🌇</span>
         </div>
     </div>
@@ -65,8 +77,8 @@
 <div id="trips-container"></div>
 
 <script>
-// CONFIGURAÇÕES E DADOS
-const FLAGS = { 'Guarulhos': 'br', 'Lisboa': 'pt', 'Madri': 'es', 'Paris': 'fr', 'Londres': 'gb', 'Roma': 'it', 'Milão': 'it', 'Civitavecchia': 'it', 'Valência': 'es', 'Barcelona': 'es', 'Marselha': 'fr', 'Gênova': 'it', 'Livorno': 'it' };
+// ==================== DADOS E CONSTANTES ====================
+const FLAGS = { 'Guarulhos': 'https://flagcdn.com/w20/br.png', 'Lisboa': 'https://flagcdn.com/w20/pt.png', 'Madri': 'https://flagcdn.com/w20/es.png', 'Paris': 'https://flagcdn.com/w20/fr.png', 'Londres': 'https://flagcdn.com/w20/gb.png', 'Roma': 'https://flagcdn.com/w20/it.png', 'Milão': 'https://flagcdn.com/w20/it.png', 'Civitavecchia': 'https://flagcdn.com/w20/it.png', 'Valência': 'https://flagcdn.com/w20/es.png', 'Barcelona': 'https://flagcdn.com/w20/es.png', 'Marselha': 'https://flagcdn.com/w20/fr.png', 'Gênova': 'https://flagcdn.com/w20/it.png', 'Livorno': 'https://flagcdn.com/w20/it.png' };
 const TRIPS = [
     { title: "Guarulhos → Lisboa", emoji: "✈️", date: "2025-12-19T16:20:00", arrival: "05:15", type: "flight" },
     { title: "Lisboa → Madri", emoji: "✈️", date: "2025-12-23T18:00:00", arrival: "20:20", type: "flight" },
@@ -86,94 +98,166 @@ const TRIPS = [
 ];
 
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-let globalLocationName = "Localização não autorizada";
-let lastCoords = { lat: null, lon: null };
+let globalLocationName = "Buscando localização...";
+let lastCoords = { lat: 0, lon: 0 };
 
-// SISTEMA DE LOCALIZAÇÃO E CLIMA
+// ==================== LÓGICA DE LOCALIZAÇÃO E CLIMA ====================
+
 async function getCityName(lat, lon) {
     try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
         const data = await res.json();
-        const city = data.address.city || data.address.town || data.address.village || "Desconhecido";
+        const city = data.address.city || data.address.town || data.address.village || "Local Desconhecido";
         return `${city}, ${data.address.country_code.toUpperCase()}`;
-    } catch { return "Erro ao obter local"; }
+    } catch { return "Localização Offline"; }
 }
 
-async function updateWeatherData(lat, lon) {
+async function updateWeather(lat, lon) {
     try {
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`);
         const data = await res.json();
-        const current = data.current;
-        const daily = data.daily;
+        const cur = data.current;
+        const d = data.daily;
         
-        document.getElementById('sunrise-time').textContent = daily.sunrise[0].split('T')[1];
-        document.getElementById('sunset-time').textContent = daily.sunset[0].split('T')[1];
+        document.getElementById('sunrise-time').textContent = d.sunrise[0].split('T')[1];
+        document.getElementById('sunset-time').textContent = d.sunset[0].split('T')[1];
         
-        const weatherMap = { 0: ["☀️","Céu Limpo"], 1: ["🌤️","Limpo"], 2: ["⛅","Parcial. Nublado"], 3: ["☁️","Nublado"], 45: ["🌫️","Neblina"], 61: ["🌧️","Chuva Leve"], 95: ["⛈️","Tempestade"] };
-        const [icon, desc] = weatherMap[current.weather_code] || ["🌡️", "Clima"];
+        const map = { 0: ["☀️","Céu Limpo"], 1: ["🌤️","Limpo"], 2: ["⛅","Parcial. Nublado"], 3: ["☁️","Nublado"], 45: ["🌫️","Neblina"], 61: ["🌧️","Chuva"], 95: ["⛈️","Tempestade"] };
+        const [icon, desc] = map[cur.weather_code] || ["🌡️", "Clima"];
         
-        document.getElementById('weather-line-2').textContent = `${icon} ${Math.round(current.temperature_2m)}°C | ${desc} (Máx: ${Math.round(daily.temperature_2m_max[0])}°C Mín: ${Math.round(daily.temperature_2m_min[0])}°C)`;
+        document.getElementById('weather-line-2').textContent = `${icon} ${Math.round(cur.temperature_2m)}°C | ${desc} (Mín: ${Math.round(d.temperature_2m_min[0])}°C Máx: ${Math.round(d.temperature_2m_max[0])}°C)`;
     } catch (e) { console.error("Erro clima", e); }
 }
 
-function initLocationTracking() {
+function startRealTimeTracking() {
     if (!navigator.geolocation) return;
     navigator.geolocation.watchPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
-        // Só atualiza se mudar mais de 0.01 grau (evita spam de API)
-        if (Math.abs(lastCoords.lat - latitude) > 0.01 || Math.abs(lastCoords.lon - longitude) > 0.01) {
+        if (Math.abs(lastCoords.lat - latitude) > 0.01) { // Só atualiza API se mudar de fato
             lastCoords = { lat: latitude, lon: longitude };
             globalLocationName = await getCityName(latitude, longitude);
-            updateWeatherData(latitude, longitude);
+            updateWeather(latitude, longitude);
         }
     }, () => {
-        globalLocationName = "S. Paulo, BR (Padrão)";
-        updateWeatherData(-23.55, -46.63);
+        globalLocationName = "São Paulo, BR";
+        updateWeather(-23.55, -46.63);
     }, { enableHighAccuracy: true });
 }
 
-function updateDateTime() {
+function updateClock() {
     const now = new Date();
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const timeStr = now.toLocaleTimeString('pt-BR');
-    const dateStr = now.toLocaleDateString('pt-BR');
-    document.getElementById('weather-line-1').textContent = `${days[now.getDay()]} | ${dateStr} | ${timeStr} | ${globalLocationName}`;
+    document.getElementById('weather-line-1').textContent = `${days[now.getDay()]} | ${now.toLocaleDateString('pt-BR')} | ${now.toLocaleTimeString('pt-BR')} | ${globalLocationName}`;
 }
 
-// LÓGICA DE VIAGENS
-function formatCountdown(ms) {
-    if (ms <= 0) return "Viagem Concluída!";
-    const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-    return `${d}d ${h}h ${m}m ${s % 60}s`;
+// ==================== LÓGICA DE VIAGENS (ORIGINAL PRESERVADA) ====================
+
+function cleanLoc(r) { return r.replace(/[☀-➿]/g, '').replace(/[()]/g, '').replace(/–.*/g, '').trim(); }
+
+function parseScale(trip) {
+    if (!trip.scale) return null;
+    const m = trip.scale.match(/Escala em (.+?) \((.+?)–(.+?)\)/);
+    return m ? { loc: m[1], arr: m[2], dep: m[3] } : null;
 }
 
-function renderTrips() {
-    const container = document.getElementById('trips-container');
-    container.innerHTML = TRIPS.map((trip, i) => `
-        <div class="trip-card" id="trip-${i}">
-            <div class="title-row">
-                <h3>${trip.emoji} ${trip.title}</h3>
-                <div class="sub">${new Date(trip.date).toLocaleDateString('pt-BR')}</div>
-            </div>
-            <div class="progress-wrapper">
-                <div class="progress-fill" style="background: #4b6b82">
-                    <div class="extra-msg-overlay"></div>
-                </div>
-                <div class="progress-percent">0%</div>
-                <div class="emoji-icon">${trip.emoji}</div>
-            </div>
-            <div class="status">Calculando...</div>
-            <div class="sub countdown">--</div>
+function getOD(title) {
+    if (title.includes('→')) {
+        const p = title.split('→').map(cleanLoc);
+        return { from: p[0], to: p[1] };
+    }
+    const s = cleanLoc(title); return { from: s, to: s };
+}
+
+function createTripCard(trip) {
+    const od = getOD(trip.title);
+    const card = document.createElement('div');
+    card.className = 'trip-card';
+    const targetDate = new Date(trip.date).toLocaleDateString('pt-BR');
+
+    card.innerHTML = `
+        <div class="title-row">
+            <h3>${trip.emoji} ${trip.title}</h3>
+            <div class="sub">${targetDate}</div>
         </div>
-    `).join('');
+        ${trip.scale ? `<div class="sub" style="font-style:italic">✈️ ${trip.scale}</div>` : ''}
+        <div class="progress-wrapper">
+            <div class="progress-fill" data-dynamic="fill">
+                <div class="extra-msg-overlay" data-dynamic="extra-msg"></div>
+            </div>
+            <div class="progress-percent" data-dynamic="percent">0%</div>
+            <div class="emoji-icon" data-dynamic="emoji">${trip.emoji}</div>
+        </div>
+        <div class="status" data-dynamic="status"></div>
+        <div class="sub countdown" data-dynamic="countdown"></div>
+    `;
+    return card;
 }
 
-function updateAll() {
-    const now = new Date();
-    let nextTrip = null, minMs = Infinity;
+function updateTripCard(card, trip, now) {
+    const target = new Date(trip.date);
+    const msLeft = target - now;
+    let pct = msLeft <= 0 ? 100 : Math.max(0, Math.min(100, ((MAX_WINDOW_MS - msLeft) / MAX_WINDOW_MS) * 100));
+    
+    const fill = card.querySelector('[data-dynamic="fill"]');
+    const percent = card.querySelector('[data-dynamic="percent"]');
+    const msg = card.querySelector('[data-dynamic="extra-msg"]');
+    const emoji = card.querySelector('[data-dynamic="emoji"]');
+    const status = card.querySelector('[data-dynamic="status"]');
+    const countdown = card.querySelector('[data-dynamic="countdown"]');
 
+    // Cores e Status
+    let color = msLeft <= 0 ? "#27ae60" : (msLeft / 86400000 <= 9 ? "#33FF33" : "#4b6b82");
+    fill.style.width = pct + '%';
+    fill.style.backgroundColor = color;
+    emoji.style.left = `calc(${pct}% - 15px)`;
+    if (pct > 0 && pct < 100) emoji.classList.add('emoji-jump');
+
+    // Lógica de Mensagens Especiais
+    let extra = "";
+    if (msLeft <= 0) extra = "Viagem concluída";
+    else if (msLeft < 3600000) extra = "Hora de Embarcar!";
+
+    msg.textContent = extra;
+    percent.style.display = extra ? "none" : "block";
+    percent.textContent = Math.round(pct) + '%';
+    
+    // Status Texto
+    status.textContent = trip.arrival ? `Partida: ${target.getHours()}:${String(target.getMinutes()).padStart(2,'0')} — Chegada: ${trip.arrival}` : `Partida: ${target.getHours()}:${String(target.getMinutes()).padStart(2,'0')}`;
+    
+    if (msLeft > 0) {
+        const s = Math.floor(msLeft/1000), d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+        countdown.textContent = `${d}d ${h}h ${m}m ${s%60}s`;
+    } else {
+        countdown.textContent = "Concluído!";
+    }
+}
+
+function findNext(now) {
+    const next = TRIPS.find(t => new Date(t.date) > now);
+    const el = document.getElementById('next-destination');
+    if (next) el.innerHTML = `Próximo destino: <b>${next.title}</b> — ${new Date(next.date).toLocaleString('pt-BR')}`;
+}
+
+// ==================== INICIALIZAÇÃO ====================
+function init() {
+    const container = document.getElementById('trips-container');
+    container.innerHTML = '';
     TRIPS.forEach((trip, i) => {
-        const card = document.getElementById(`trip-${i}`);
-        const target = new Date(trip.date);
-        const msLeft = target - now;
-        const pct = Math.max(0, Math.min(100, ((
+        const card = createTripCard(trip);
+        card.id = `trip-${i}`;
+        container.appendChild(card);
+    });
+
+    startRealTimeTracking();
+    setInterval(updateClock, 1000);
+    setInterval(() => {
+        const now = new Date();
+        TRIPS.forEach((trip, i) => updateTripCard(document.getElementById(`trip-${i}`), trip, now));
+        findNext(now);
+    }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
